@@ -3,6 +3,7 @@ import { reactive, computed, watch } from 'vue'
 import BaseInput from '@/components/common/BaseInput.vue'
 import BaseSelect from '@/components/common/BaseSelect.vue'
 import BaseButton from '@/components/common/BaseButton.vue'
+import BaseDatePicker from '@/components/common/BaseDatePicker.vue'
 
 const props = defineProps({
   actionPoint: { type: Object, required: true }, // { title, assigneeHint, dueDate, priority }
@@ -57,7 +58,12 @@ function register() {
         :options="assigneeOptions"
         :disabled="registered"
       />
-      <BaseInput v-model="form.dueDate" label="기한" type="date" :disabled="registered" />
+      <BaseDatePicker
+        v-model="form.dueDate"
+        label="기한"
+        placeholder="기한 선택"
+        :disabled="registered"
+      />
       <BaseSelect
         v-model="form.priority"
         label="우선순위"

@@ -23,6 +23,7 @@ const { members } = storeToRefs(projectStore)
 
 const inputTab = ref('text')
 const contentDraft = ref('')
+const editingContent = ref(false)
 const savingContent = ref(false)
 const contentSaved = ref(false)
 const showEdit = ref(false)
@@ -39,6 +40,7 @@ watch(
   () => route.params.id,
   async (id) => {
     registeredIndexes.value = []
+    editingContent.value = false
     try {
       const m = await store.fetchMeeting(id)
       contentDraft.value = m?.content ?? ''
@@ -56,11 +58,25 @@ watch(
   { immediate: true },
 )
 
+function startEditContent() {
+  contentDraft.value = current.value?.content ?? ''
+  editingContent.value = true
+}
+
+function cancelEditContent() {
+  contentDraft.value = current.value?.content ?? ''
+  editingContent.value = false
+}
+
 async function runAnalyze() {
   const useAudio = inputTab.value === 'audio' && audioFile.value
   try {
-    // 텍스트 분석 전 초안 저장
-    if (!useAudio && contentDraft.value.trim() !== (current.value.content ?? '')) {
+    // 편집 중이고 변경사항이 있으면 먼저 저장
+    if (
+      !useAudio &&
+      editingContent.value &&
+      contentDraft.value.trim() !== (current.value.content ?? '')
+    ) {
       await saveContent()
     }
     await store.analyzeMeeting(route.params.id, useAudio ? audioFile.value : null)
@@ -93,6 +109,7 @@ async function saveContent() {
       meetingAt: current.value.meetingAt,
       attendeeIds: current.value.attendees.map((a) => a.userId),
     })
+    editingContent.value = false
     contentSaved.value = true
     setTimeout(() => (contentSaved.value = false), 2000)
   } finally {
@@ -177,18 +194,31 @@ async function handleDelete() {
         </div>
 
         <div v-if="inputTab === 'text'" class="input-area">
-          <textarea
-            v-model="contentDraft"
-            class="input-area__textarea"
-            rows="8"
-            placeholder="회의 내용을 입력하거나 메신저 대화를 붙여넣으세요."
-          />
-          <div class="input-area__foot">
-            <span v-if="contentSaved" class="input-area__saved">저장됨</span>
-            <BaseButton variant="soft" size="sm" :disabled="savingContent" @click="saveContent">
-              {{ savingContent ? '저장 중…' : '내용 저장' }}
-            </BaseButton>
-          </div>
+          <template v-if="editingContent">
+            <textarea
+              v-model="contentDraft"
+              class="input-area__textarea"
+              rows="10"
+              placeholder="회의 내용을 입력하거나 메신저 대화를 붙여넣으세요."
+            />
+            <div class="input-area__foot">
+              <BaseButton variant="ghost" size="sm" @click="cancelEditContent">취소</BaseButton>
+              <BaseButton variant="soft" size="sm" :disabled="savingContent" @click="saveContent">
+                {{ savingContent ? '저장 중…' : '저장' }}
+              </BaseButton>
+            </div>
+          </template>
+
+          <template v-else>
+            <p v-if="current.content" class="content-view">{{ current.content }}</p>
+            <p v-else class="empty-hint">
+              회의 내용이 없습니다. “수정”을 눌러 회의록이나 메신저 대화를 입력하세요.
+            </p>
+            <div class="input-area__foot">
+              <span v-if="contentSaved" class="input-area__saved">저장됨</span>
+              <BaseButton variant="ghost" size="sm" @click="startEditContent">수정</BaseButton>
+            </div>
+          </template>
         </div>
         <div v-else class="upload-area">
           <label class="upload-drop">
@@ -311,6 +341,15 @@ async function handleDelete() {
   display: flex;
   flex-direction: column;
   gap: var(--sp-3);
+}
+.content-view {
+  white-space: pre-wrap;
+  line-height: 1.7;
+  font-size: var(--fs-md);
+  color: var(--c-text);
+  padding: var(--sp-3);
+  background: var(--c-surface-alt);
+  border-radius: var(--r-md);
 }
 .input-area__textarea {
   padding: var(--sp-3);

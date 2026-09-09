@@ -4,6 +4,7 @@ import BaseModal from '@/components/common/BaseModal.vue'
 import BaseInput from '@/components/common/BaseInput.vue'
 import BaseSelect from '@/components/common/BaseSelect.vue'
 import BaseButton from '@/components/common/BaseButton.vue'
+import BaseDatePicker from '@/components/common/BaseDatePicker.vue'
 import { required, maxLength, dateRange, firstError } from '@/utils/validation'
 
 const props = defineProps({
@@ -97,8 +98,13 @@ async function onSubmit() {
       </label>
 
       <div class="pform__row">
-        <BaseInput v-model="form.startDate" label="시작일" type="date" />
-        <BaseInput v-model="form.endDate" label="종료일" type="date" :error="errors.dates" />
+        <BaseDatePicker v-model="form.startDate" label="시작일" placeholder="시작일 선택" />
+        <BaseDatePicker
+          v-model="form.endDate"
+          label="종료일"
+          placeholder="종료일 선택"
+          :error="errors.dates"
+        />
       </div>
 
       <BaseSelect v-if="project" v-model="form.status" label="상태" :options="STATUS_OPTIONS" />

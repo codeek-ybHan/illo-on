@@ -7,6 +7,7 @@ import BaseModal from '@/components/common/BaseModal.vue'
 import BaseInput from '@/components/common/BaseInput.vue'
 import BaseSelect from '@/components/common/BaseSelect.vue'
 import BaseButton from '@/components/common/BaseButton.vue'
+import BaseDatePicker from '@/components/common/BaseDatePicker.vue'
 import AppIcon from '@/components/common/AppIcon.vue'
 import { required, maxLength, firstError } from '@/utils/validation'
 
@@ -148,7 +149,12 @@ async function onSubmit() {
       />
 
       <BaseInput v-model="form.title" label="회의 제목" required :error="errors.title" />
-      <BaseInput v-model="form.meetingAt" label="회의 일시" type="datetime-local" />
+      <BaseDatePicker
+        v-model="form.meetingAt"
+        label="회의 일시"
+        placeholder="일시 선택"
+        with-time
+      />
 
       <div class="mform__field">
         <span class="mform__label">참석자</span>

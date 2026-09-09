@@ -4,6 +4,7 @@ import BaseModal from '@/components/common/BaseModal.vue'
 import BaseInput from '@/components/common/BaseInput.vue'
 import BaseSelect from '@/components/common/BaseSelect.vue'
 import BaseButton from '@/components/common/BaseButton.vue'
+import BaseDatePicker from '@/components/common/BaseDatePicker.vue'
 import { required, maxLength, firstError } from '@/utils/validation'
 
 const props = defineProps({
@@ -118,7 +119,7 @@ async function onSubmit() {
           :options="assigneeOptions"
           placeholder="미지정"
         />
-        <BaseInput v-model="form.dueDate" label="마감일" type="date" />
+        <BaseDatePicker v-model="form.dueDate" label="마감일" placeholder="마감일 선택" />
       </div>
 
       <div class="tform__row">

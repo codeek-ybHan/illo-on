@@ -4,6 +4,7 @@ import BaseModal from '@/components/common/BaseModal.vue'
 import BaseInput from '@/components/common/BaseInput.vue'
 import BaseSelect from '@/components/common/BaseSelect.vue'
 import BaseButton from '@/components/common/BaseButton.vue'
+import BaseDatePicker from '@/components/common/BaseDatePicker.vue'
 import { required, maxLength, dateRange, firstError } from '@/utils/validation'
 
 const props = defineProps({
@@ -79,8 +80,13 @@ async function onSubmit() {
       <p v-if="formError" class="sform__error">{{ formError }}</p>
       <BaseInput v-model="form.name" label="Sprint 이름" required :error="errors.name" />
       <div class="sform__row">
-        <BaseInput v-model="form.startDate" label="시작일" type="date" />
-        <BaseInput v-model="form.endDate" label="종료일" type="date" :error="errors.dates" />
+        <BaseDatePicker v-model="form.startDate" label="시작일" placeholder="시작일 선택" />
+        <BaseDatePicker
+          v-model="form.endDate"
+          label="종료일"
+          placeholder="종료일 선택"
+          :error="errors.dates"
+        />
       </div>
       <BaseSelect v-if="sprint" v-model="form.status" label="상태" :options="STATUS_OPTIONS" />
     </form>
