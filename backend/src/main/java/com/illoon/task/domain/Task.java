@@ -67,6 +67,11 @@ public class Task extends BaseTimeEntity {
         this.status = status != null ? status : TaskStatus.TODO;
     }
 
+    /** Sprint 배정/해제 (기획서 §5-8 — 별도 API 없이 처리) */
+    public void assignSprint(Long sprintId) {
+        this.sprintId = sprintId;
+    }
+
     /** PUT — 전체 교체 (기획서 §11-4, 별도 status API 없음) */
     public void update(String title, String description, Long assigneeId, LocalDate dueDate,
                        TaskPriority priority, TaskStatus status, Long sprintId, Long meetingId) {

@@ -106,25 +106,25 @@ GET    /api/me/tasks
 
 ---
 
-## 4. Sprint
+## 4. Sprint ✅ (2026-09-09)
 
-- [ ] Sprint 목록 / 생성 / 상세 / 수정 / 삭제
-- [ ] Task → Sprint 배정
-- [ ] Sprint 진행률 · Sprint별 Task 목록
+- [x] Sprint 목록 / 생성 / 상세 / 수정 / 삭제 (생성·수정·삭제 = ADMIN)
+- [x] Task → Sprint 배정 — `PUT /api/tasks/{id}` `{ sprintId }` (별도 API 없음, 27개 유지)
+- [x] Sprint 진행률 (doneCount/taskCount) · `GET /api/tasks?projectId=&sprintId=` 필터
+- [x] Sprint 삭제 시 배정 Task는 유지, `sprintId` 만 해제
 
 ```http
-GET    /api/projects/{projectId}/sprints
-POST   /api/projects/{projectId}/sprints
+GET    /api/projects/{projectId}/sprints   진행률 포함
+POST   /api/projects/{projectId}/sprints   ADMIN
 GET    /api/sprints/{sprintId}
-PUT    /api/sprints/{sprintId}
-DELETE /api/sprints/{sprintId}
+PUT    /api/sprints/{sprintId}              ADMIN, 전체 교체
+DELETE /api/sprints/{sprintId}              ADMIN
 ```
 
-**Sprint 배정은 별도 API를 만들지 않는다** — `PUT /api/tasks/{taskId}` 에 `{ "sprintId": 1 }` 로 연결 (전체 API 27개 유지).
+**BE**: `sprint/domain`(`Sprint` `SprintStatus`) · `SprintRepository` · `SprintService`(ProjectService ADMIN 가드, 진행률 집계, 삭제 시 Task unassign) · `SprintController` · `Task.assignSprint()` + `TaskRepository` sprint 카운트/필터 · `TaskController` `sprintId` 쿼리 파라미터
+**FE**: `api/sprint.js` · `stores/sprint.js` · `components/sprint/`(`SprintForm` `SprintBoard`(TODO/IN_PROGRESS/DONE) `SprintPanel`) · ProjectDetail **Sprint 탭** (목록·생성·보드·Task 배정/해제) · `SprintView`(`/sprints`) 프로젝트별 Sprint 현황 오버뷰
 
-FE: `api/sprint.js` · `SprintCard` / `SprintTaskList` · `SprintView` 보드(TODO / IN_PROGRESS / DONE)
-
-**완료 기준**: Sprint 생성 → Task 배정 → 보드에서 상태별로 확인, 진행률 계산.
+**완료 기준**: Sprint 생성 → Task 배정 → 보드에서 상태별 확인, 진행률 계산 — curl E2E 검증 완료 (create 201, 비-ADMIN 403, PUT sprintId 배정, progress 50% (1/2), sprintId 필터, delete 204 → Task `sprintId` null + Sprint 404).
 
 ---
 

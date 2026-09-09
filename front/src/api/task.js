@@ -1,8 +1,10 @@
 import http from './axios'
 
-/** 프로젝트 Task 목록 */
-export function fetchTasks(projectId) {
-  return http.get('/tasks', { params: { projectId } }).then((res) => res.data)
+/** 프로젝트 Task 목록 (sprintId 지정 시 해당 Sprint 내 Task만) */
+export function fetchTasks(projectId, sprintId) {
+  const params = { projectId }
+  if (sprintId != null) params.sprintId = sprintId
+  return http.get('/tasks', { params }).then((res) => res.data)
 }
 
 /** 내 Task (담당자 = 나) */

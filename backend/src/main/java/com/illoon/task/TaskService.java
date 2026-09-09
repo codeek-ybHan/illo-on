@@ -35,9 +35,12 @@ public class TaskService {
     // ---------- queries ----------
 
     @Transactional(readOnly = true)
-    public List<TaskResponse> listByProject(Long projectId, Long userId) {
+    public List<TaskResponse> listByProject(Long projectId, Long sprintId, Long userId) {
         projectService.requireMember(projectId, userId);
-        return toResponses(taskRepository.findAllByProjectIdOrderByCreatedAtDesc(projectId));
+        List<Task> tasks = sprintId == null
+                ? taskRepository.findAllByProjectIdOrderByCreatedAtDesc(projectId)
+                : taskRepository.findAllByProjectIdAndSprintIdOrderByCreatedAtDesc(projectId, sprintId);
+        return toResponses(tasks);
     }
 
     @Transactional(readOnly = true)

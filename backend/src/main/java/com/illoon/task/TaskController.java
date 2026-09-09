@@ -20,11 +20,12 @@ public class TaskController {
 
     private final TaskService taskService;
 
-    @Operation(summary = "프로젝트 Task 목록")
+    @Operation(summary = "프로젝트 Task 목록 (sprintId 로 Sprint 내 Task 필터)")
     @GetMapping("/api/tasks")
     public List<TaskResponse> list(@AuthenticationPrincipal Long userId,
-                                   @RequestParam Long projectId) {
-        return taskService.listByProject(projectId, userId);
+                                   @RequestParam Long projectId,
+                                   @RequestParam(required = false) Long sprintId) {
+        return taskService.listByProject(projectId, sprintId, userId);
     }
 
     @Operation(summary = "내 Task (담당자 = 나)")

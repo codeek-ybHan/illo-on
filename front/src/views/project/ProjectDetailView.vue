@@ -14,6 +14,7 @@ import AppIcon from '@/components/common/AppIcon.vue'
 import ProjectForm from '@/components/project/ProjectForm.vue'
 import TaskList from '@/components/task/TaskList.vue'
 import TaskForm from '@/components/task/TaskForm.vue'
+import SprintPanel from '@/components/sprint/SprintPanel.vue'
 import { formatDate } from '@/utils/date'
 
 const route = useRoute()
@@ -197,11 +198,16 @@ async function copyInvite() {
         <TaskList :tasks="tasks" :loading="tasksLoading" @change-status="handleStatusChange" />
       </div>
 
-      <!-- Sprint / Meetings: 이후 Phase -->
+      <!-- Sprint -->
+      <SprintPanel
+        v-else-if="activeTab === 'Sprint'"
+        :project-id="current.projectId"
+        :is-admin="isAdmin"
+      />
+
+      <!-- Meetings: Phase 5 -->
       <BaseCard v-else>
-        <p class="empty-hint">
-          "{{ activeTab }}" — Phase {{ activeTab === 'Sprint' ? 4 : 5 }}에서 연결됩니다.
-        </p>
+        <p class="empty-hint">"Meetings" — Phase 5에서 연결됩니다.</p>
       </BaseCard>
     </template>
 
