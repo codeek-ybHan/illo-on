@@ -15,17 +15,16 @@
 - [x] 공통 컴포넌트: `BaseCard` · `BaseButton` · `ProgressBar` · `StatCard` · `SummaryChip` · `PagePlaceholder` · `AppIcon`
 - [x] 9개 화면 라우팅 + 플레이스홀더
 
-### 남은 것
+### 남은 것 — ✅ 완료 (2026-09-09)
 
-- [ ] 공통 컴포넌트: `BaseInput` · `BaseModal` · `BaseSelect`
-- [ ] `api/axios.js` — baseURL, JWT Authorization 인터셉터, 401/에러 공통 처리
-- [ ] `.env` (`VITE_API_BASE_URL` 등)
-- [ ] Pinia 스토어 골격: `stores/auth.js` · `project.js` · `task.js`
-- [ ] Router Guard (현재 `router/index.js` 주석 자리 활성화)
-- [ ] `utils/date.js` · `utils/validation.js`
-- [ ] **ERD / DDL / DBML** 확정 — `USER · TEAM · PROJECT · PROJECT_MEMBER · PROJECT_INVITE · MEETING · MEETING_MEMBER · TASK · SPRINT`
-      (특히 `TASK.meeting_id`, `TASK.sprint_id` FK 구조)
-- [ ] BE 셋업 (`backend/`): Spring Boot, CORS, JWT 필터, BCrypt, `@RestControllerAdvice` 예외 핸들러, Swagger/OpenAPI
+- [x] 공통 컴포넌트: `BaseInput` · `BaseModal` · `BaseSelect`
+- [x] `api/axios.js` — baseURL(`VITE_API_BASE_URL`), JWT Authorization 인터셉터, 401 → 로그인 리다이렉트, 에러 메시지 정규화
+- [x] `.env` / `.env.example`
+- [x] Pinia 스토어 골격: `stores/auth.js`(토큰·유저·`isAuthenticated`·`setAuth`·`logout`) · `project.js` · `task.js`
+- [x] Router Guard — `public` 라우트 외 토큰 없으면 `/login`(redirect 쿼리 보관), `utils/token.js`
+- [x] `utils/date.js`(ISO 포맷·D-day) · `utils/validation.js`
+- [x] **ERD / DBML** — `docs/일로ON_ERD.md` (DBML + Enum 통일표 + 마이그레이션 순서 + 화면↔테이블)
+- [x] BE 셋업 (`backend/`): Spring Boot 3.4 (Maven, Java 21), H2(dev)/MySQL(prod) 프로파일, JWT(`JwtTokenProvider`/`JwtAuthenticationFilter`), `SecurityConfig`(stateless·CORS·BCrypt), `GlobalExceptionHandler` + `ErrorCode`, `BaseTimeEntity`, Swagger(`/swagger-ui.html`) — 부팅 확인 완료
 
 ---
 
