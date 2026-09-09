@@ -1,11 +1,15 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 import AppRail from '@/components/common/AppRail.vue'
 import AppHeader from '@/components/common/AppHeader.vue'
 import AiAssistantPanel from '@/components/common/AiAssistantPanel.vue'
+import GlobalCreateModals from '@/components/common/GlobalCreateModals.vue'
+import SearchPalette from '@/components/common/SearchPalette.vue'
+import { useUiStore } from '@/stores/ui'
 
 const route = useRoute()
+const ui = useUiStore()
 const aiCollapsed = ref(true)
 
 // 회의 상세처럼 meta.aiPanelOpen 이 있는 화면은 패널을 펼친 상태로 진입
@@ -16,6 +20,16 @@ watch(
   },
   { immediate: true },
 )
+
+// ⌘K / Ctrl+K → 검색 팔레트
+function onKeydown(e) {
+  if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
+    e.preventDefault()
+    ui.toggleSearch()
+  }
+}
+onMounted(() => document.addEventListener('keydown', onKeydown))
+onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown))
 </script>
 
 <template>
@@ -32,8 +46,11 @@ watch(
         </main>
       </div>
 
-      <AiAssistantPanel v-if="!aiCollapsed" @collapse="aiCollapsed = true" />
+      <AiAssistantPanel v-show="!aiCollapsed" @collapse="aiCollapsed = true" />
     </div>
+
+    <GlobalCreateModals />
+    <SearchPalette />
   </div>
 </template>
 

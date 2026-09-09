@@ -24,3 +24,13 @@ export function analyzeMeeting(meetingId, audioFile) {
 export function fetchSummary(meetingId) {
   return http.get(`/meetings/${meetingId}/summary`).then((res) => res.data)
 }
+
+/**
+ * AI 어시스턴트 대화. history: [{ role: 'user'|'assistant', content }]
+ * → { reply, provider }  (provider: 'openai' 실제 응답 / 'mock' 설정 안내)
+ */
+export function chat(message, history = []) {
+  return http
+    .post('/ai/chat', { message, history }, { timeout: 60000 })
+    .then((res) => res.data)
+}

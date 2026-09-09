@@ -5,16 +5,54 @@ import BaseInput from '@/components/common/BaseInput.vue'
 import BaseSelect from '@/components/common/BaseSelect.vue'
 import BaseButton from '@/components/common/BaseButton.vue'
 import BaseDatePicker from '@/components/common/BaseDatePicker.vue'
+import { fetchMembers } from '@/api/project'
 import { required, maxLength, firstError } from '@/utils/validation'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
   task: { type: Object, default: null }, // 있으면 수정
-  projectId: { type: [Number, String], required: true },
+  /** 고정 프로젝트 (프로젝트/회의 상세에서 열 때) */
+  projectId: { type: [Number, String], default: null },
+  /** 프로젝트 선택이 필요할 때 (헤더 "만들기"에서 열 때) */
+  projects: { type: Array, default: () => [] },
   members: { type: Array, default: () => [] }, // [{ userId, name }]
   submitFn: { type: Function, required: true },
 })
 const emit = defineEmits(['update:open'])
+
+const fixedProject = computed(() => props.projectId != null)
+const pickedProjectId = ref('')
+const effectiveProjectId = computed(() =>
+  fixedProject.value ? props.projectId : pickedProjectId.value || null,
+)
+const projectOptions = computed(() =>
+  props.projects.map((p) => ({ label: p.name, value: String(p.projectId) })),
+)
+
+const fetchedMembers = ref([])
+const membersLoading = ref(false)
+const resolvedMembers = computed(() =>
+  props.members.length ? props.members : fetchedMembers.value,
+)
+
+watch(
+  [() => props.open, effectiveProjectId],
+  async ([isOpen, pid]) => {
+    if (!isOpen || fixedProject.value || !pid) {
+      fetchedMembers.value = []
+      return
+    }
+    membersLoading.value = true
+    try {
+      fetchedMembers.value = await fetchMembers(pid)
+    } catch {
+      fetchedMembers.value = []
+    } finally {
+      membersLoading.value = false
+    }
+  },
+  { immediate: true },
+)
 
 const PRIORITY_OPTIONS = [
   { label: '높음', value: 'HIGH' },
@@ -28,7 +66,7 @@ const STATUS_OPTIONS = [
 ]
 const assigneeOptions = computed(() => [
   { label: '미지정', value: '' },
-  ...props.members.map((m) => ({ label: m.name, value: String(m.userId) })),
+  ...resolvedMembers.value.map((m) => ({ label: m.name, value: String(m.userId) })),
 ])
 
 const form = reactive({
@@ -39,7 +77,7 @@ const form = reactive({
   priority: 'MEDIUM',
   status: 'TODO',
 })
-const errors = reactive({ title: '' })
+const errors = reactive({ title: '', project: '' })
 const formError = ref('')
 const submitting = ref(false)
 
@@ -49,6 +87,8 @@ watch(
     if (!isOpen) return
     formError.value = ''
     errors.title = ''
+    errors.project = ''
+    pickedProjectId.value = ''
     const t = props.task
     Object.assign(form, {
       title: t?.title ?? '',
@@ -63,7 +103,9 @@ watch(
 
 function validate() {
   errors.title = required(form.title, '업무명') || maxLength(form.title, 200, '업무명')
-  return !firstError([errors.title])
+  errors.project =
+    props.task || fixedProject.value || pickedProjectId.value ? '' : '프로젝트를 선택해 주세요.'
+  return !firstError([errors.title, errors.project])
 }
 
 async function onSubmit() {
@@ -85,7 +127,7 @@ async function onSubmit() {
           sprintId: props.task.sprintId ?? null,
           meetingId: props.task.meetingId ?? null,
         }
-      : { ...base, projectId: Number(props.projectId) }
+      : { ...base, projectId: Number(effectiveProjectId.value) }
     await props.submitFn(payload)
     emit('update:open', false)
   } catch (e) {
@@ -105,7 +147,19 @@ async function onSubmit() {
     <form class="tform" @submit.prevent="onSubmit">
       <p v-if="formError" class="tform__error">{{ formError }}</p>
 
+      <BaseSelect
+        v-if="!fixedProject && !task"
+        v-model="pickedProjectId"
+        label="프로젝트"
+        required
+        :options="projectOptions"
+        placeholder="프로젝트 선택"
+        :error="errors.project"
+      />
+
       <BaseInput v-model="form.title" label="업무명" required :error="errors.title" />
+
+      <p v-if="membersLoading" class="tform__hint">멤버 불러오는 중…</p>
 
       <label class="tform__field">
         <span class="tform__label">설명</span>
@@ -163,6 +217,10 @@ async function onSubmit() {
 .tform__label {
   font-size: var(--fs-sm);
   font-weight: 500;
+}
+.tform__hint {
+  font-size: var(--fs-xs);
+  color: var(--c-text-muted);
 }
 .tform__textarea {
   padding: var(--sp-3);

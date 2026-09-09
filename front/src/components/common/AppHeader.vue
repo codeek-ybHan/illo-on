@@ -2,7 +2,9 @@
 import { useRoute } from 'vue-router'
 import { computed } from 'vue'
 import AppIcon from './AppIcon.vue'
-import BaseButton from './BaseButton.vue'
+import CreateMenu from './CreateMenu.vue'
+import NotificationsMenu from './NotificationsMenu.vue'
+import { useUiStore } from '@/stores/ui'
 
 const props = defineProps({
   aiPanelCollapsed: { type: Boolean, default: false },
@@ -10,6 +12,7 @@ const props = defineProps({
 const emit = defineEmits(['toggle-ai'])
 
 const route = useRoute()
+const ui = useUiStore()
 const crumbs = computed(() => route.meta.breadcrumb || [route.meta.title || '일로ON'])
 </script>
 
@@ -25,16 +28,17 @@ const crumbs = computed(() => route.meta.breadcrumb || [route.meta.title || '일
     </nav>
 
     <div class="header__actions">
-      <button class="header__icon-btn" type="button" aria-label="알림">
-        <AppIcon name="bell" :size="18" />
-      </button>
-      <button class="header__icon-btn" type="button" aria-label="검색">
+      <NotificationsMenu />
+      <button
+        class="header__icon-btn"
+        type="button"
+        aria-label="검색"
+        title="검색 (⌘K / Ctrl K)"
+        @click="ui.openSearch()"
+      >
         <AppIcon name="search" :size="18" />
       </button>
-      <BaseButton variant="primary" size="sm">
-        <template #icon><AppIcon name="plus" :size="16" /></template>
-        만들기
-      </BaseButton>
+      <CreateMenu />
       <button
         v-if="props.aiPanelCollapsed"
         class="header__icon-btn header__icon-btn--accent"
