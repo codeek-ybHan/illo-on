@@ -1,7 +1,8 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { fetchProjects } from '@/api/project'
-import { fetchMeetings, createMeeting } from '@/api/meeting'
+import { createMeeting } from '@/api/meeting'
+import { fetchMyMeetings } from '@/api/board'
 import PagePlaceholder from '@/components/common/PagePlaceholder.vue'
 import BaseCard from '@/components/common/BaseCard.vue'
 import BaseButton from '@/components/common/BaseButton.vue'
@@ -32,11 +33,9 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    projects.value = await fetchProjects()
-    const lists = await Promise.all(projects.value.map((p) => fetchMeetings(p.projectId)))
-    meetings.value = lists
-      .flat()
-      .sort((a, b) => new Date(b.meetingAt || b.createdAt) - new Date(a.meetingAt || a.createdAt))
+    const [ps, ms] = await Promise.all([fetchProjects(), fetchMyMeetings()])
+    projects.value = ps
+    meetings.value = ms
   } catch (e) {
     error.value = e.normalizedMessage || '회의를 불러오지 못했습니다.'
   } finally {

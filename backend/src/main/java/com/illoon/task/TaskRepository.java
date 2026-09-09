@@ -22,6 +22,8 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
 
     long countByProjectId(Long projectId);
 
+    long countByProjectIdAndStatus(Long projectId, TaskStatus status);
+
     long countByMeetingId(Long meetingId);
 
     long countBySprintId(Long sprintId);

@@ -20,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -38,6 +39,27 @@ public class MeetingService {
     private final UserRepository userRepository;
     private final TaskRepository taskRepository;
     private final AiService aiService;
+
+    /** 내가 속한 모든 프로젝트의 회의 (메인보드 · 캘린더용). from/to 는 meetingAt 기준 날짜 필터. */
+    @Transactional(readOnly = true)
+    public List<MeetingResponse> listMine(Long userId, LocalDate from, LocalDate to) {
+        List<Project> projects = projectRepository.findAllByMember(userId);
+        if (projects.isEmpty()) return List.of();
+        Map<Long, String> names = projects.stream()
+                .collect(Collectors.toMap(Project::getId, Project::getName));
+
+        return meetingRepository.findAllByProjectIdInOrderByMeetingAtDescCreatedAtDesc(names.keySet())
+                .stream()
+                .filter(m -> from == null || m.getMeetingAt() == null
+                        || !m.getMeetingAt().toLocalDate().isBefore(from))
+                .filter(m -> to == null || m.getMeetingAt() == null
+                        || !m.getMeetingAt().toLocalDate().isAfter(to))
+                .map(m -> MeetingResponse.of(m, names.get(m.getProjectId()),
+                        meetingMemberRepository.countByIdMeetingId(m.getId()),
+                        aiService.hasAnalysis(m.getId()),
+                        taskRepository.countByMeetingId(m.getId())))
+                .toList();
+    }
 
     @Transactional(readOnly = true)
     public List<MeetingResponse> listByProject(Long projectId, Long userId) {

@@ -200,15 +200,20 @@ AI 분석 → Action Point → 사용자 검토/수정 → [업무로 등록] �
 
 ---
 
-## 7. 메인보드 + 캘린더 연결
+## 7. 메인보드 + 캘린더 연결 ✅ (2026-09-09)
 
-기능이 다 만들어진 뒤 **마지막에** 실데이터 연결. (처음부터 실데이터로 만들면 Task/Project/Sprint 구조가 바뀔 때마다 다시 뜯어고치게 됨.)
+- [x] `MainBoardView`: 스탯 3열(내 프로젝트 평균 진행률 / 현재 Sprint D-day / 오늘 할 일) · 요약 칩(내 Task·예정 회의·오늘 마감·마감 임박, 클릭 이동) · 내가 해야 할 Task · 내 프로젝트(진행률 바) · 오늘의 일정(회의+마감)
+- [x] `CalendarView`: 월 그리드(회의·Task 마감 도트), 날짜 클릭 → 아젠다, 월 이동/오늘 버튼
+- [x] `GET /api/me/board` — 대시보드 집계 (프로젝트 진행률·활성 Sprint·오늘 회의/Task·요약 카운트) **1콜**
+- [x] `GET /api/me/meetings?from=&to=` — 전 프로젝트 회의 (메인보드·캘린더·회의목록 공용, N+1 제거)
+- [x] 진행률 = 완료 Task / 전체 Task (`TaskRepository.countByProjectIdAndStatus`)
 
-- [ ] `MainBoardView`: 내가 해야 할 Task · 내 프로젝트(진행률) · 현재 Sprint · 오늘의 일정
-- [ ] 요약 칩 카운트 연동 (내 Task · 예정 회의 · Action Point · 마감 임박)
-- [ ] `CalendarView`: 회의 일정 + Task 마감일 (필수화면 9)
+**BE**: `board/`(`BoardController` · `BoardService` · `BoardResponse`) · `MeetingService.listMine` · `MeetingRepository.findAllByProjectIdIn...`
+**FE**: `api/board.js` · `MainBoardView` 전면 연동 · `CalendarView` 전면 연동 · `MeetingListView` `/api/me/meetings` 로 교체
 
-**완료 기준**: 로그인 직후 메인보드에서 시나리오 A~D의 결과물이 한눈에 보인다.
+> API 총 개수: 기획서 27 + 대시보드 집계 2개(`/me/board`, `/me/meetings`) = **29**. 대시보드/캘린더 N+1 방지를 위한 집계 엔드포인트.
+
+**완료 기준**: 로그인 직후 메인보드에서 시나리오 A~D 결과물이 한눈에 — curl E2E 검증 완료 (board: openTask 1 / dueSoon 1 / 진행률 50% / 활성 Sprint / 오늘 회의 표시).
 
 ---
 

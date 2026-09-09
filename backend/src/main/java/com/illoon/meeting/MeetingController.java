@@ -28,6 +28,19 @@ public class MeetingController {
         return meetingService.listByProject(projectId, userId);
     }
 
+    @Operation(summary = "내 회의 (전 프로젝트, from/to 날짜 필터)")
+    @GetMapping("/api/me/meetings")
+    public List<MeetingResponse> myMeetings(
+            @AuthenticationPrincipal Long userId,
+            @RequestParam(required = false)
+            @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE)
+            java.time.LocalDate from,
+            @RequestParam(required = false)
+            @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE)
+            java.time.LocalDate to) {
+        return meetingService.listMine(userId, from, to);
+    }
+
     @Operation(summary = "회의 생성")
     @PostMapping("/api/projects/{projectId}/meetings")
     @ResponseStatus(HttpStatus.CREATED)
