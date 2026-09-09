@@ -76,25 +76,30 @@ POST   /api/invites/{token}/join    만료 410 / 이미 참여 409 / 없음 404
 
 ---
 
-## 3. Task — 실제 업무 관리
+## 3. Task — 실제 업무 관리 ✅ (2026-09-09)
 
-- [ ] Task 목록 / 생성 / 상세 / 수정 / 삭제
-- [ ] 담당자 지정 · 마감일 · 우선순위(`HIGH/MEDIUM/LOW`) · 상태(`TODO/IN_PROGRESS/DONE`)
-- [ ] 내 업무 목록
-- [ ] 상태 변경 (`TODO → IN_PROGRESS → DONE`)
+- [x] Task 목록 / 생성 / 상세 / 수정 / 삭제
+- [x] 담당자 지정(프로젝트 멤버만 400 검증) · 마감일 · 우선순위 · 상태
+- [x] 내 업무 목록 (`/api/me/tasks`, 마감일 오름차순)
+- [x] 상태 변경 — 별도 API 없이 `PUT` 전체 교체 (TaskCard 셀렉트 · TaskDetail "다음 단계로")
 
 ```http
-GET    /api/tasks
-POST   /api/tasks
+GET    /api/tasks?projectId=   프로젝트 멤버만
+POST   /api/tasks              projectId 필수, meetingId/sprintId 선택
 GET    /api/tasks/{taskId}
-PUT    /api/tasks/{taskId}
+PUT    /api/tasks/{taskId}      전체 교체 (status·sprintId·meetingId 포함)
 DELETE /api/tasks/{taskId}
 GET    /api/me/tasks
 ```
 
-FE: `api/task.js` · `stores/task.js` · `TaskCard` / `TaskList` / `TaskForm` · `TaskDetailView` 실데이터
+**BE**: `task/domain`(`Task` `TaskStatus` `TaskPriority`) · `TaskRepository` · `TaskService`(ProjectService 멤버 가드 재사용, 담당자 검증, 배치 이름 해석) · `TaskController`
+**FE**: `api/task.js` · `stores/task.js`(`toUpdatePayload` 헬퍼, `changeStatus`) · `components/task/`(`TaskCard` `TaskList` `TaskForm`) · ProjectDetail **Tasks 탭** 연동 · `TaskDetailView` 실데이터(정보·상태전이·관련 회의 자리·수정/삭제) · MainBoard **"내가 해야 할 Task"** 실데이터 + 인사말에 사용자 이름
 
-**완료 기준 (시나리오 C)**: 로그인 → 내 Task 확인 → 상태 변경 반영.
+**완료 기준 (시나리오 C)**: 로그인 → 메인보드에서 내 Task 확인 → 상태 변경 반영 — curl E2E 검증 완료 (create 201 / 비멤버 담당자 400 / 비멤버 목록 403 / me·tasks 스코프 / status PUT / 404 / delete 204).
+
+> Meeting/AI보다 Task를 먼저 만드는 이유: AI의 "업무로 등록" 단계가 Task CRUD에 의존한다.
+> Task를 먼저 세워두면 이후 AI 단계가 그 자리에서 끝까지 검증된다.
+> ⚠️ 메인보드 스탯카드·프로젝트·일정 섹션은 여전히 placeholder (Phase 7).
 
 > Meeting/AI보다 Task를 먼저 만드는 이유: AI의 "업무로 등록" 단계가 Task CRUD에 의존한다.
 > Task를 먼저 세워두면 이후 AI 단계가 그 자리에서 끝까지 검증된다.

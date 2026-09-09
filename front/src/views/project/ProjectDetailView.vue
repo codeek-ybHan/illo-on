@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useProjectStore } from '@/stores/project'
+import { useTaskStore } from '@/stores/task'
 import { createInvite as apiCreateInvite } from '@/api/project'
 import PagePlaceholder from '@/components/common/PagePlaceholder.vue'
 import BaseCard from '@/components/common/BaseCard.vue'
@@ -11,15 +12,20 @@ import BaseModal from '@/components/common/BaseModal.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import AppIcon from '@/components/common/AppIcon.vue'
 import ProjectForm from '@/components/project/ProjectForm.vue'
+import TaskList from '@/components/task/TaskList.vue'
+import TaskForm from '@/components/task/TaskForm.vue'
 import { formatDate } from '@/utils/date'
 
 const route = useRoute()
 const router = useRouter()
 const store = useProjectStore()
+const taskStore = useTaskStore()
 const { current, members, loading, error } = storeToRefs(store)
+const { tasks, loading: tasksLoading } = storeToRefs(taskStore)
 
 const tabs = ['Overview', 'Sprint', 'Tasks', 'Meetings']
 const activeTab = ref('Overview')
+const showTaskCreate = ref(false)
 
 const showEdit = ref(false)
 const showDelete = ref(false)
@@ -36,6 +42,7 @@ watch(
   () => route.params.id,
   async (id) => {
     invite.value = null
+    activeTab.value = 'Overview'
     try {
       await store.fetchProject(id)
       await store.fetchMembers(id)
@@ -45,6 +52,19 @@ watch(
   },
   { immediate: true },
 )
+
+// Tasks 탭 진입 시 로드
+watch([activeTab, () => route.params.id], ([tab, id]) => {
+  if (tab === 'Tasks' && id) taskStore.fetchTasks(id)
+})
+
+async function handleTaskCreate(payload) {
+  await taskStore.createTask(payload)
+}
+
+function handleStatusChange(task, status) {
+  taskStore.changeStatus(task, status)
+}
 
 async function handleEdit(payload) {
   await store.updateProject(route.params.id, payload)
@@ -165,11 +185,22 @@ async function copyInvite() {
         </BaseCard>
       </div>
 
-      <!-- 나머지 탭: 이후 Phase -->
+      <!-- Tasks -->
+      <div v-else-if="activeTab === 'Tasks'" class="tasks-tab">
+        <div class="tasks-tab__head">
+          <h2 class="tasks-tab__title">Task</h2>
+          <BaseButton variant="primary" size="sm" @click="showTaskCreate = true">
+            <template #icon><AppIcon name="plus" :size="16" /></template>
+            새 Task
+          </BaseButton>
+        </div>
+        <TaskList :tasks="tasks" :loading="tasksLoading" @change-status="handleStatusChange" />
+      </div>
+
+      <!-- Sprint / Meetings: 이후 Phase -->
       <BaseCard v-else>
         <p class="empty-hint">
-          "{{ activeTab }}" — Phase
-          {{ activeTab === 'Tasks' ? 3 : activeTab === 'Sprint' ? 4 : 5 }}에서 연결됩니다.
+          "{{ activeTab }}" — Phase {{ activeTab === 'Sprint' ? 4 : 5 }}에서 연결됩니다.
         </p>
       </BaseCard>
     </template>
@@ -178,6 +209,14 @@ async function copyInvite() {
   </PagePlaceholder>
 
   <ProjectForm v-if="current" v-model:open="showEdit" :project="current" :submit-fn="handleEdit" />
+
+  <TaskForm
+    v-if="current"
+    v-model:open="showTaskCreate"
+    :project-id="current.projectId"
+    :members="members"
+    :submit-fn="handleTaskCreate"
+  />
 
   <BaseModal v-model:open="showDelete" title="프로젝트 삭제" size="sm">
     <p>정말 이 프로젝트를 삭제할까요? 관련 데이터가 모두 사라집니다.</p>
@@ -216,6 +255,19 @@ async function copyInvite() {
   font-size: var(--fs-md);
   color: var(--c-text-2);
   white-space: pre-wrap;
+}
+.tasks-tab {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+.tasks-tab__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.tasks-tab__title {
+  font-size: var(--fs-lg);
 }
 .tabs {
   display: flex;

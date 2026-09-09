@@ -1,9 +1,27 @@
 <script setup>
+import { computed, onMounted } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useAuthStore } from '@/stores/auth'
+import { useTaskStore } from '@/stores/task'
 import PagePlaceholder from '@/components/common/PagePlaceholder.vue'
 import BaseCard from '@/components/common/BaseCard.vue'
 import StatCard from '@/components/common/StatCard.vue'
 import SummaryChip from '@/components/common/SummaryChip.vue'
 import ProgressBar from '@/components/common/ProgressBar.vue'
+import TaskList from '@/components/task/TaskList.vue'
+
+const auth = useAuthStore()
+const taskStore = useTaskStore()
+const { myTasks, loading: tasksLoading } = storeToRefs(taskStore)
+
+const greeting = computed(() => `${auth.user?.name || ''}님, 좋은 아침이에요 👋`.trim())
+const openCount = computed(() => myTasks.value.filter((t) => t.status !== 'DONE').length)
+
+onMounted(() => taskStore.fetchMyTasks())
+
+function handleStatusChange(task, status) {
+  taskStore.changeStatus(task, status)
+}
 
 const summaries = [
   { tone: 'lavender', icon: 'project', label: '내 Task' },
@@ -14,7 +32,20 @@ const summaries = [
 </script>
 
 <template>
-  <PagePlaceholder title="좋은 아침이에요 👋" subtitle="오늘의 업무와 일정을 한눈에 확인하세요.">
+  <PagePlaceholder :title="greeting" subtitle="오늘의 업무와 일정을 한눈에 확인하세요.">
+    <!-- 내가 해야 할 Task -->
+    <section>
+      <h2 class="section-title">
+        내가 해야 할 Task <span class="section-title__count">{{ openCount }}</span>
+      </h2>
+      <TaskList
+        :tasks="myTasks"
+        :loading="tasksLoading"
+        show-project
+        @change-status="handleStatusChange"
+      />
+    </section>
+
     <!-- 스탯 카드 3열 -->
     <div class="grid-3">
       <StatCard
@@ -102,6 +133,11 @@ const summaries = [
 .section-title {
   font-size: var(--fs-lg);
   margin-bottom: var(--sp-3);
+}
+.section-title__count {
+  margin-left: var(--sp-2);
+  font-size: var(--fs-sm);
+  color: var(--c-text-muted);
 }
 .schedule {
   display: grid;

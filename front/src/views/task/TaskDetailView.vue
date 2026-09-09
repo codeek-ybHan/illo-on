@@ -1,26 +1,125 @@
 <script setup>
+import { ref, computed, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { storeToRefs } from 'pinia'
+import { useTaskStore } from '@/stores/task'
+import { useProjectStore } from '@/stores/project'
 import PagePlaceholder from '@/components/common/PagePlaceholder.vue'
 import BaseCard from '@/components/common/BaseCard.vue'
+import BaseButton from '@/components/common/BaseButton.vue'
+import BaseModal from '@/components/common/BaseModal.vue'
+import StatusBadge from '@/components/common/StatusBadge.vue'
 import AppIcon from '@/components/common/AppIcon.vue'
+import TaskForm from '@/components/task/TaskForm.vue'
+import { formatDate } from '@/utils/date'
 
-const fields = ['상태', '담당자', '마감일', '우선순위', '프로젝트', 'Sprint']
+const route = useRoute()
+const router = useRouter()
+const store = useTaskStore()
+const projectStore = useProjectStore()
+const { current, error } = storeToRefs(store)
+const { members } = storeToRefs(projectStore)
+
+const STATUS_FLOW = ['TODO', 'IN_PROGRESS', 'DONE']
+const showEdit = ref(false)
+const showDelete = ref(false)
+const deleting = ref(false)
+
+const nextStatus = computed(() => {
+  if (!current.value) return null
+  const i = STATUS_FLOW.indexOf(current.value.status)
+  return i >= 0 && i < STATUS_FLOW.length - 1 ? STATUS_FLOW[i + 1] : null
+})
+const nextStatusLabel = computed(
+  () => ({ IN_PROGRESS: '진행 중으로', DONE: '완료로' })[nextStatus.value],
+)
+
+watch(
+  () => route.params.id,
+  async (id) => {
+    try {
+      const task = await store.fetchTask(id)
+      if (task?.projectId) projectStore.fetchMembers(task.projectId)
+    } catch {
+      /* store.error */
+    }
+  },
+  { immediate: true },
+)
+
+function advanceStatus() {
+  if (nextStatus.value) store.changeStatus(current.value, nextStatus.value)
+}
+
+async function handleEdit(payload) {
+  await store.updateTask(route.params.id, payload)
+}
+
+async function handleDelete() {
+  deleting.value = true
+  try {
+    const projectId = current.value?.projectId
+    await store.deleteTask(route.params.id)
+    router.replace(
+      projectId ? { name: 'project-detail', params: { id: projectId } } : { name: 'mainboard' },
+    )
+  } finally {
+    deleting.value = false
+  }
+}
 </script>
 
 <template>
   <PagePlaceholder
-    title="Task 상세"
+    :title="current?.title || 'Task'"
     subtitle="업무 정보와 이 업무가 생성된 회의 맥락을 확인하세요."
   >
-    <div class="task-grid">
+    <template v-if="current" #actions>
+      <BaseButton v-if="nextStatus" variant="primary" size="sm" @click="advanceStatus">
+        {{ nextStatusLabel }}
+      </BaseButton>
+      <BaseButton variant="ghost" size="sm" @click="showEdit = true">수정</BaseButton>
+      <BaseButton variant="ghost" size="sm" @click="showDelete = true">삭제</BaseButton>
+    </template>
+
+    <p v-if="error" class="detail-error">{{ error }}</p>
+
+    <div v-else-if="current" class="task-grid">
       <BaseCard>
         <template #header>업무 정보</template>
         <div class="task-body">
-          <span class="skeleton-text skeleton-text--title" />
-          <div class="skeleton task-desc" />
+          <p class="task-desc">{{ current.description || '설명이 없습니다.' }}</p>
           <dl class="fields">
-            <div v-for="f in fields" :key="f" class="field">
-              <dt>{{ f }}</dt>
-              <dd><span class="skeleton-text skeleton-text--sm" /></dd>
+            <div class="field">
+              <dt>상태</dt>
+              <dd><StatusBadge :status="current.status" /></dd>
+            </div>
+            <div class="field">
+              <dt>우선순위</dt>
+              <dd><StatusBadge :status="current.priority" /></dd>
+            </div>
+            <div class="field">
+              <dt>담당자</dt>
+              <dd>{{ current.assigneeName || '미지정' }}</dd>
+            </div>
+            <div class="field">
+              <dt>마감일</dt>
+              <dd>{{ current.dueDate ? formatDate(current.dueDate) : '미정' }}</dd>
+            </div>
+            <div class="field">
+              <dt>프로젝트</dt>
+              <dd>
+                <RouterLink
+                  :to="{ name: 'project-detail', params: { id: current.projectId } }"
+                  class="link"
+                >
+                  {{ current.projectName }}
+                </RouterLink>
+              </dd>
+            </div>
+            <div class="field">
+              <dt>생성일</dt>
+              <dd>{{ formatDate(current.createdAt) }}</dd>
             </div>
           </dl>
         </div>
@@ -28,20 +127,51 @@ const fields = ['상태', '담당자', '마감일', '우선순위', '프로젝�
 
       <BaseCard>
         <template #header>관련 회의</template>
-        <button class="related-meeting" type="button">
+        <RouterLink
+          v-if="current.meetingId"
+          class="related-meeting"
+          :to="{ name: 'meeting-detail', params: { id: current.meetingId } }"
+        >
           <span class="related-meeting__icon"><AppIcon name="meeting" :size="18" /></span>
           <div class="related-meeting__text">
-            <span class="skeleton-text skeleton-text--sm" />
-            <span class="u-muted">이 업무가 논의된 회의로 이동</span>
+            <span class="related-meeting__label">이 업무가 논의된 회의</span>
+            <span class="u-muted">회의로 이동</span>
           </div>
           <AppIcon name="chevronRight" :size="16" />
-        </button>
+        </RouterLink>
+        <p v-else class="empty-hint">회의에서 생성된 업무가 아닙니다.</p>
       </BaseCard>
     </div>
   </PagePlaceholder>
+
+  <TaskForm
+    v-if="current"
+    v-model:open="showEdit"
+    :task="current"
+    :project-id="current.projectId"
+    :members="members"
+    :submit-fn="handleEdit"
+  />
+
+  <BaseModal v-model:open="showDelete" title="Task 삭제" size="sm">
+    <p>이 Task를 삭제할까요?</p>
+    <template #footer>
+      <BaseButton variant="ghost" size="sm" @click="showDelete = false">취소</BaseButton>
+      <BaseButton variant="primary" size="sm" :disabled="deleting" @click="handleDelete">
+        {{ deleting ? '삭제 중…' : '삭제' }}
+      </BaseButton>
+    </template>
+  </BaseModal>
 </template>
 
 <style scoped>
+.detail-error {
+  padding: var(--sp-3);
+  border-radius: var(--r-md);
+  background: var(--c-peach);
+  color: var(--c-danger);
+  font-size: var(--fs-sm);
+}
 .task-grid {
   display: grid;
   grid-template-columns: 1.6fr 1fr;
@@ -51,15 +181,17 @@ const fields = ['상태', '담당자', '마감일', '우선순위', '프로젝�
 .task-body {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-4);
+  gap: var(--sp-5);
 }
 .task-desc {
-  height: 64px;
+  font-size: var(--fs-md);
+  color: var(--c-text-2);
+  white-space: pre-wrap;
 }
 .fields {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--sp-3) var(--sp-5);
+  gap: var(--sp-4) var(--sp-5);
 }
 .field {
   display: flex;
@@ -70,6 +202,13 @@ const fields = ['상태', '담당자', '마감일', '우선순위', '프로젝�
   font-size: var(--fs-xs);
   color: var(--c-text-muted);
 }
+.field dd {
+  font-size: var(--fs-sm);
+}
+.link {
+  color: var(--c-accent);
+  font-weight: 500;
+}
 .related-meeting {
   display: flex;
   align-items: center;
@@ -78,7 +217,6 @@ const fields = ['상태', '담당자', '마감일', '우선순위', '프로젝�
   padding: var(--sp-3);
   border: 1px solid var(--c-border);
   border-radius: var(--r-md);
-  text-align: left;
 }
 .related-meeting:hover {
   background: var(--c-surface-alt);
@@ -96,23 +234,11 @@ const fields = ['상태', '담당자', '마감일', '우선순위', '프로젝�
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   font-size: var(--fs-sm);
 }
-.skeleton-text {
-  display: block;
-  height: 10px;
-  width: 70%;
-  border-radius: var(--r-full);
-  background: var(--c-border);
-}
-.skeleton-text--title {
-  width: 45%;
-  height: 14px;
-}
-.skeleton-text--sm {
-  width: 55%;
-  height: 9px;
+.related-meeting__label {
+  font-weight: 500;
 }
 
 @media (max-width: 1080px) {
