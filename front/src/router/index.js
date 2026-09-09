@@ -30,10 +30,22 @@ const router = createRouter({
           meta: { title: '회의 상세', breadcrumb: ['회의', '회의 상세'], aiPanelOpen: true },
         },
         {
+          path: 'projects',
+          name: 'projects',
+          component: () => import('@/views/project/ProjectListView.vue'),
+          meta: { title: '프로젝트', breadcrumb: ['프로젝트', '내 프로젝트'] },
+        },
+        {
           path: 'projects/:id',
           name: 'project-detail',
           component: () => import('@/views/project/ProjectDetailView.vue'),
           meta: { title: '프로젝트', breadcrumb: ['프로젝트', '프로젝트 상세'] },
+        },
+        {
+          path: 'invite/:token',
+          name: 'invite-join',
+          component: () => import('@/views/project/InviteJoinView.vue'),
+          meta: { title: '프로젝트 참여', breadcrumb: ['프로젝트', '초대 수락'] },
         },
         {
           path: 'tasks/:id',

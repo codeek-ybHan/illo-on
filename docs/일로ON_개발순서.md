@@ -49,28 +49,30 @@ Signup → Login → JWT → 인증 상태 관리
 
 ---
 
-## 2. 프로젝트 — 업무의 기본 단위
+## 2. 프로젝트 — 업무의 기본 단위 ✅ (2026-09-09)
 
-- [ ] 프로젝트 목록 / 생성 / 상세 / 수정 / 삭제
-- [ ] 프로젝트 멤버 조회
-- [ ] 초대 링크 생성 · 복사
-- [ ] 초대 링크로 프로젝트 참여 (미로그인 시 로그인 후 자동 이어받기)
+- [x] 프로젝트 목록 / 생성 / 상세 / 수정(PUT 전체교체) / 삭제
+- [x] 프로젝트 멤버 조회 (ADMIN 먼저 정렬)
+- [x] 초대 링크 생성 (7일 유효, ADMIN) · 클립보드 복사
+- [x] 초대 링크로 프로젝트 참여 — 미로그인 시 가드가 `redirect` 보관 후 로그인→복귀
 
 ```http
-GET    /api/projects
-POST   /api/projects
-GET    /api/projects/{projectId}
-PUT    /api/projects/{projectId}
-DELETE /api/projects/{projectId}
-
-POST /api/projects/{projectId}/invites
-GET  /api/projects/{projectId}/members
-POST /api/invites/{token}/join
+GET    /api/projects            내가 멤버인 프로젝트 (myRole·memberCount 포함)
+POST   /api/projects            생성자 = ADMIN 멤버, Team 자동 생성
+GET    /api/projects/{id}        멤버만 (403 NOT_PROJECT_MEMBER)
+PUT    /api/projects/{id}        ADMIN만 (403 NOT_PROJECT_ADMIN)
+DELETE /api/projects/{id}        ADMIN만, 멤버십 정리 후 삭제
+POST   /api/projects/{id}/invites   ADMIN만 → { token, inviteUrl, expiresAt }
+GET    /api/projects/{id}/members
+POST   /api/invites/{token}/join    만료 410 / 이미 참여 409 / 없음 404
 ```
 
-FE: `api/project.js` · `stores/project.js` · `ProjectForm`(생성 모달) · `ProjectDetailView` Overview 탭 · 초대 수락 화면
+**BE**: `team/Team` · `project/domain`(`Project` `ProjectMember`(복합PK) `ProjectInvite` `ProjectStatus` `MemberRole`) · `ProjectService`(멤버/ADMIN 가드) · `ProjectController` · `InviteController`
+**FE**: `api/project.js` · `stores/project.js` · `views/project/`(`ProjectListView` `ProjectDetailView` `InviteJoinView`) · `components/project/ProjectForm.vue` · `components/common/StatusBadge.vue` · 라우트 `/projects` `/invite/:token` · 레일 프로젝트 → `/projects`
 
-**완료 기준 (시나리오 A)**: 프로젝트 생성 → 초대 링크 공유 → 다른 계정이 링크로 참여 → 멤버 목록에 표시.
+**완료 기준 (시나리오 A)**: 프로젝트 생성 → 초대 링크 → 다른 계정 참여 → 멤버 목록 표시 — curl E2E 검증 완료 (create 201, 비멤버 조회 403, 비-ADMIN invite/update/delete 403, join 200 / 재참여 409 / 잘못된 토큰 404).
+
+> ⚠️ 메인보드 "내 프로젝트" 섹션 실데이터 연동은 Phase 7로 이월 (지금은 `/projects` 전용 화면).
 
 ---
 

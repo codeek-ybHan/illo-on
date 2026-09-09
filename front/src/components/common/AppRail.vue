@@ -11,7 +11,7 @@ const menu = [
   { to: { name: 'mainboard' }, icon: 'home', label: '메인보드' },
   { to: { name: 'meetings' }, icon: 'meeting', label: '회의' },
   { to: { name: 'calendar' }, icon: 'calendar', label: '캘린더' },
-  { to: { name: 'project-detail', params: { id: 1 } }, icon: 'project', label: '프로젝트' },
+  { to: { name: 'projects' }, icon: 'project', label: '프로젝트' },
   { to: { name: 'sprints' }, icon: 'sprint', label: 'Sprint' },
 ]
 
