@@ -8,7 +8,6 @@ import { fetchBoard } from '@/api/board'
 import PagePlaceholder from '@/components/common/PagePlaceholder.vue'
 import BaseCard from '@/components/common/BaseCard.vue'
 import StatCard from '@/components/common/StatCard.vue'
-import SummaryChip from '@/components/common/SummaryChip.vue'
 import ProgressBar from '@/components/common/ProgressBar.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import TaskList from '@/components/task/TaskList.vue'
@@ -26,42 +25,8 @@ const boardLoading = ref(true)
 const greeting = computed(() => `${auth.user?.name || ''}님, 좋은 아침이에요 👋`.trim())
 const openCount = computed(() => myTasks.value.filter((t) => t.status !== 'DONE').length)
 
-// 요약 칩으로 아래 Task 목록을 좁혀 보기
-const tasksSectionEl = ref(null)
+// "오늘 할 일" 스탯 카드 → 오늘의 일정 섹션으로 스크롤
 const scheduleSectionEl = ref(null)
-const taskScope = ref('open') // 'open' | 'today' | 'soon'
-
-const SCOPE_LABEL = { open: '미완료', today: '오늘 마감', soon: '마감 임박(3일)' }
-
-function isSameDay(dt) {
-  if (!dt) return false
-  const d = new Date(dt)
-  const n = new Date()
-  return d.toDateString() === n.toDateString()
-}
-function withinDays(dt, n) {
-  if (!dt) return false
-  const d = new Date(dt)
-  d.setHours(0, 0, 0, 0)
-  const from = new Date()
-  from.setHours(0, 0, 0, 0)
-  const to = new Date(from)
-  to.setDate(to.getDate() + n)
-  return d >= from && d <= to
-}
-
-const scopedTasks = computed(() => {
-  const open = myTasks.value.filter((t) => t.status !== 'DONE')
-  if (taskScope.value === 'today') return open.filter((t) => isSameDay(t.dueDate))
-  if (taskScope.value === 'soon') return open.filter((t) => withinDays(t.dueDate, 3))
-  return open
-})
-
-async function focusTasks(scope) {
-  taskScope.value = scope
-  await nextTick()
-  tasksSectionEl.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-}
 async function focusSchedule() {
   await nextTick()
   scheduleSectionEl.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -92,37 +57,6 @@ const todayDoneRatio = computed(() => {
     pct: total + done === 0 ? 0 : Math.round((done / (total + done)) * 100),
   }
 })
-
-const summaries = computed(() => [
-  {
-    tone: 'lavender',
-    icon: 'project',
-    label: '내 Task',
-    count: board.value?.openTaskCount ?? openCount.value,
-    action: () => focusTasks('open'),
-  },
-  {
-    tone: 'peach',
-    icon: 'meeting',
-    label: '예정 회의',
-    count: board.value?.upcomingMeetingCount ?? 0,
-    action: () => router.push({ name: 'meetings' }),
-  },
-  {
-    tone: 'cream',
-    icon: 'calendar',
-    label: '오늘 마감',
-    count: board.value?.todayTaskCount ?? 0,
-    action: () => focusTasks('today'),
-  },
-  {
-    tone: 'mint',
-    icon: 'sprint',
-    label: '마감 임박',
-    count: board.value?.dueSoonCount ?? 0,
-    action: () => focusTasks('soon'),
-  },
-])
 
 onMounted(async () => {
   taskStore.fetchMyTasks()
@@ -182,39 +116,13 @@ async function handleStatusChange(task, status) {
       />
     </div>
 
-    <!-- 요약 칩 -->
-    <section>
-      <h2 class="section-title">한눈에 보기</h2>
-      <div class="grid-4">
-        <SummaryChip
-          v-for="s in summaries"
-          :key="s.label"
-          :tone="s.tone"
-          :icon="s.icon"
-          :label="s.label"
-          :count="s.count"
-          @click="s.action()"
-        />
-      </div>
-    </section>
-
     <!-- 내가 해야 할 Task -->
-    <section ref="tasksSectionEl">
+    <section>
       <h2 class="section-title">
-        내가 해야 할 Task
-        <span class="section-title__count">{{ scopedTasks.length }}</span>
-        <button
-          v-if="taskScope !== 'open'"
-          type="button"
-          class="scope-pill"
-          @click="taskScope = 'open'"
-        >
-          {{ SCOPE_LABEL[taskScope] }}
-          <AppIcon name="plus" :size="12" class="scope-pill__x" />
-        </button>
+        내가 해야 할 Task <span class="section-title__count">{{ openCount }}</span>
       </h2>
       <TaskList
-        :tasks="scopedTasks"
+        :tasks="myTasks"
         :loading="tasksLoading"
         show-project
         @change-status="handleStatusChange"
@@ -292,11 +200,6 @@ async function handleStatusChange(task, status) {
   grid-template-columns: repeat(3, 1fr);
   gap: var(--sp-4);
 }
-.grid-4 {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--sp-3);
-}
 .section-title {
   font-size: var(--fs-lg);
   margin-bottom: var(--sp-3);
@@ -305,21 +208,6 @@ async function handleStatusChange(task, status) {
   margin-left: var(--sp-2);
   font-size: var(--fs-sm);
   color: var(--c-text-muted);
-}
-.scope-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  margin-left: var(--sp-2);
-  padding: 2px 6px 2px 10px;
-  border-radius: var(--r-full);
-  background: var(--c-primary);
-  color: var(--c-primary-contrast);
-  font-size: var(--fs-xs);
-  vertical-align: middle;
-}
-.scope-pill__x {
-  transform: rotate(45deg);
 }
 .proj-grid {
   display: grid;
@@ -393,8 +281,7 @@ async function handleStatusChange(task, status) {
 }
 
 @media (max-width: 1080px) {
-  .grid-3,
-  .grid-4 {
+  .grid-3 {
     grid-template-columns: 1fr 1fr;
   }
 }

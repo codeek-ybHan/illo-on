@@ -4,45 +4,45 @@
    일로ON · 디자인 토큰
    ========================================================= */
 :root {
-  /* ----- 색상: 표면 ----- */
-  --c-page: #e9e8e4; /* 앱 셸 바깥 페이지 배경 */
-  --c-shell: #ffffff; /* 떠 있는 앱 셸 */
-  --c-surface: #ffffff; /* 카드 */
-  --c-surface-alt: #f4f2ef; /* inset / hover / 콘텐츠 배경 */
-  --c-border: #e7e4df;
-  --c-border-strong: #d8d4cd;
+  /* ----- 색상: 표면 (웜 뉴트럴 · 디자인 레퍼런스 기준) ----- */
+  --c-page: #d6d0c5; /* 앱 셸 바깥 페이지 배경 — 웜 그레이지, 셸이 떠 보이게 */
+  --c-shell: #fdfcf9; /* 떠 있는 앱 셸 — 순백 대신 웜 오프화이트 */
+  --c-surface: #fdfcf9; /* 카드 */
+  --c-surface-alt: #f0ece3; /* inset / hover / 콘텐츠 배경 */
+  --c-border: #e3ddd0;
+  --c-border-strong: #cdc4b4;
 
-  /* ----- 색상: 텍스트 ----- */
-  --c-text: #1b1b1b;
-  --c-text-2: #6b6b6b;
-  --c-text-muted: #9a9a9a;
+  /* ----- 색상: 텍스트 (대비 상향) ----- */
+  --c-text: #1c1a16;
+  --c-text-2: #5d574d;
+  --c-text-muted: #79705f;
 
   /* ----- primary / accent ----- */
-  --c-primary: #1b1b1b;
-  --c-primary-contrast: #ffffff;
-  --c-primary-hover: #333333;
-  --c-accent: #e5822e;
-  --c-accent-soft: #f5e4d3;
-  --c-success: #3e9b5f;
-  --c-danger: #d9534f;
+  --c-primary: #201d17;
+  --c-primary-contrast: #fdfcf9;
+  --c-primary-hover: #3a352c;
+  --c-accent: #d9762f;
+  --c-accent-soft: #f3e1cd;
+  --c-success: #2f8a54;
+  --c-danger: #c5433c;
 
-  /* ----- 파스텔 칩 / 배지 톤 ----- */
-  --c-lavender: #ece9fb;
-  --c-lavender-ink: #6c5ce7;
-  --c-peach: #fbebe4;
-  --c-peach-ink: #d9663d;
-  --c-cream: #fbf4e2;
-  --c-cream-ink: #b8912f;
-  --c-mint: #e4f3ec;
-  --c-mint-ink: #2f8f5f;
+  /* ----- 파스텔 칩 / 배지 톤 (웜 조화 + 잉크 대비 상향) ----- */
+  --c-lavender: #e9e5ee;
+  --c-lavender-ink: #54506f;
+  --c-peach: #f7e6db;
+  --c-peach-ink: #a9502a;
+  --c-cream: #f5eed9;
+  --c-cream-ink: #7c5d18;
+  --c-mint: #e0ede3;
+  --c-mint-ink: #24734a;
 
   /* ----- 상태색 ----- */
-  --c-status-todo: #9a9a9a;
-  --c-status-progress: #e5822e;
-  --c-status-done: #3e9b5f;
-  --c-priority-high: #d9534f;
-  --c-priority-medium: #e5822e;
-  --c-priority-low: #9a9a9a;
+  --c-status-todo: #79705f;
+  --c-status-progress: #d9762f;
+  --c-status-done: #2f8a54;
+  --c-priority-high: #c5433c;
+  --c-priority-medium: #d9762f;
+  --c-priority-low: #79705f;
 
   /* ----- 반경 ----- */
   --r-sm: 8px;
@@ -52,9 +52,9 @@
   --r-full: 999px;
 
   /* ----- 그림자 ----- */
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.05);
-  --shadow-shell: 0 12px 48px rgba(0, 0, 0, 0.08);
-  --shadow-pop: 0 6px 20px rgba(0, 0, 0, 0.12);
+  --shadow-card: 0 1px 2px rgba(60, 48, 32, 0.05), 0 8px 24px rgba(60, 48, 32, 0.06);
+  --shadow-shell: 0 12px 48px rgba(50, 40, 26, 0.1);
+  --shadow-pop: 0 6px 20px rgba(50, 40, 26, 0.14);
 
   /* ----- 간격 ----- */
   --sp-1: 4px;

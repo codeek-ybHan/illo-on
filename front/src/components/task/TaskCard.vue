@@ -62,8 +62,8 @@ const due = computed(() => {
   align-items: center;
   gap: var(--sp-3);
   padding: var(--sp-3) var(--sp-4);
-  background: var(--c-surface);
-  border: 1px solid var(--c-border);
+  background: transparent;
+  border: 1px solid var(--c-border-strong);
   border-radius: var(--r-md);
 }
 .tcard__main {
