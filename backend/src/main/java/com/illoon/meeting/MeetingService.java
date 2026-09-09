@@ -1,5 +1,6 @@
 package com.illoon.meeting;
 
+import com.illoon.ai.AiService;
 import com.illoon.common.exception.ApiException;
 import com.illoon.common.exception.ErrorCode;
 import com.illoon.meeting.domain.Meeting;
@@ -36,6 +37,7 @@ public class MeetingService {
     private final ProjectMemberRepository projectMemberRepository;
     private final UserRepository userRepository;
     private final TaskRepository taskRepository;
+    private final AiService aiService;
 
     @Transactional(readOnly = true)
     public List<MeetingResponse> listByProject(Long projectId, Long userId) {
@@ -45,7 +47,7 @@ public class MeetingService {
                 .stream()
                 .map(m -> MeetingResponse.of(m, projectName,
                         meetingMemberRepository.countByIdMeetingId(m.getId()),
-                        false,
+                        aiService.hasAnalysis(m.getId()),
                         taskRepository.countByMeetingId(m.getId())))
                 .toList();
     }
@@ -126,7 +128,8 @@ public class MeetingService {
                 .map(u -> new MeetingDetailResponse.Attendee(u.getId(), u.getName(), u.getEmail()))
                 .toList();
         return MeetingDetailResponse.of(meeting, projectName(meeting.getProjectId()),
-                attendees, false, taskRepository.countByMeetingId(meeting.getId()));
+                attendees, aiService.hasAnalysis(meeting.getId()),
+                taskRepository.countByMeetingId(meeting.getId()));
     }
 
     private String projectName(Long projectId) {

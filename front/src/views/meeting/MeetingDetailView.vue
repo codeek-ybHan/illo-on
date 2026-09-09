@@ -3,18 +3,23 @@ import { ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useMeetingStore } from '@/stores/meeting'
+import { useProjectStore } from '@/stores/project'
+import { createTask } from '@/api/task'
 import PagePlaceholder from '@/components/common/PagePlaceholder.vue'
 import BaseCard from '@/components/common/BaseCard.vue'
 import BaseButton from '@/components/common/BaseButton.vue'
 import BaseModal from '@/components/common/BaseModal.vue'
 import AppIcon from '@/components/common/AppIcon.vue'
 import MeetingForm from '@/components/meeting/MeetingForm.vue'
+import AiBriefing from '@/components/meeting/AiBriefing.vue'
 import { formatDateTime } from '@/utils/date'
 
 const route = useRoute()
 const router = useRouter()
 const store = useMeetingStore()
-const { current, error } = storeToRefs(store)
+const projectStore = useProjectStore()
+const { current, briefing, error, analyzing } = storeToRefs(store)
+const { members } = storeToRefs(projectStore)
 
 const inputTab = ref('text')
 const contentDraft = ref('')
@@ -24,6 +29,7 @@ const showEdit = ref(false)
 const showDelete = ref(false)
 const deleting = ref(false)
 const audioFile = ref(null)
+const registeredIndexes = ref([])
 
 function onAudioPick(e) {
   audioFile.value = e.target.files?.[0] ?? null
@@ -32,9 +38,11 @@ function onAudioPick(e) {
 watch(
   () => route.params.id,
   async (id) => {
+    registeredIndexes.value = []
     try {
       const m = await store.fetchMeeting(id)
       contentDraft.value = m?.content ?? ''
+      if (m?.projectId) projectStore.fetchMembers(m.projectId)
       // 회의 생성 폼에서 넘어온 녹음본
       const pending = store.takePendingAudio()
       if (pending) {
@@ -47,6 +55,33 @@ watch(
   },
   { immediate: true },
 )
+
+async function runAnalyze() {
+  const useAudio = inputTab.value === 'audio' && audioFile.value
+  try {
+    // 텍스트 분석 전 초안 저장
+    if (!useAudio && contentDraft.value.trim() !== (current.value.content ?? '')) {
+      await saveContent()
+    }
+    await store.analyzeMeeting(route.params.id, useAudio ? audioFile.value : null)
+    registeredIndexes.value = []
+    if (useAudio) {
+      contentDraft.value = store.current?.content ?? ''
+      inputTab.value = 'text'
+    }
+  } catch {
+    /* store.error */
+  }
+}
+
+async function registerActionPoint(index, payload) {
+  await createTask({
+    projectId: current.value.projectId,
+    meetingId: current.value.meetingId,
+    ...payload,
+  })
+  registeredIndexes.value = [...registeredIndexes.value, index]
+}
 
 async function saveContent() {
   savingContent.value = true
@@ -157,31 +192,40 @@ async function handleDelete() {
         </div>
         <div v-else class="upload-area">
           <label class="upload-drop">
-            <input type="file" accept="audio/*" hidden @change="onAudioPick" />
+            <input type="file" accept="audio/*,.txt,.vtt,.srt" hidden @change="onAudioPick" />
             <AppIcon name="paperclip" :size="20" />
             <span v-if="audioFile">{{ audioFile.name }}</span>
             <span v-else>녹음 파일 선택 (mp3, m4a, wav…)</span>
           </label>
-          <p class="upload-hint">
-            아래 “AI 분석하기”를 누르면 음성 → 텍스트(STT) 변환 후 요약합니다 (Phase 6).
-          </p>
+          <p class="upload-hint">“AI 분석하기”를 누르면 음성 → 텍스트(STT) 변환 후 분석합니다.</p>
         </div>
       </BaseCard>
 
-      <!-- AI 브리핑 (Phase 6) -->
+      <!-- AI 브리핑 -->
       <BaseCard>
         <template #header>
           <span class="briefing-title">
             <span class="briefing-title__icon"><AppIcon name="sparkle" :size="15" /></span>
             AI 회의 브리핑
           </span>
-          <BaseButton variant="primary" size="sm" disabled>
+          <BaseButton variant="primary" size="sm" :disabled="analyzing" @click="runAnalyze">
             <template #icon><AppIcon name="sparkle" :size="15" /></template>
-            AI 분석하기
+            {{ analyzing ? '분석 중…' : briefing ? '다시 분석' : 'AI 분석하기' }}
           </BaseButton>
         </template>
-        <p class="empty-hint">
-          Phase 6에서 회의 내용을 분석해 요약 · 결정사항 · Action Point를 추출합니다.
+
+        <div v-if="analyzing" class="skeleton" style="height: 120px" />
+        <AiBriefing
+          v-else-if="briefing"
+          :briefing="briefing"
+          :members="members"
+          :registered-indexes="registeredIndexes"
+          @register="registerActionPoint"
+        />
+        <p v-else class="empty-hint">
+          회의 내용을 입력하거나 녹음본을 올린 뒤 “AI 분석하기”를 누르세요.<br />
+          요약 · 결정사항 · Action Point가 추출되고, Action Point를 검토해 업무로 등록할 수
+          있습니다.
         </p>
       </BaseCard>
     </template>

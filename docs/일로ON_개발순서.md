@@ -151,7 +151,7 @@ DELETE /api/meetings/{meetingId}
 
 ---
 
-## 6. ⭐ AI 회의 분석 — 일로ON의 차별점
+## 6. ⭐ AI 회의 분석 — 일로ON의 차별점 ✅ (2026-09-09)
 
 ```text
 회의 내용
@@ -171,11 +171,19 @@ POST /api/meetings/{meetingId}/analyze
 GET  /api/meetings/{meetingId}/summary
 ```
 
-- [ ] AI Service + Spring AI · 프롬프트 엔지니어링 · Structured Output · Advisor(공통 처리)
-- [ ] `POST .../analyze` — 텍스트 입력 우선 구현, 녹음본(STT)은 이후
-- [ ] FE: `AiSummary` · `ActionPointCard`(담당자·기한·우선순위 수정 가능)
-- [ ] 담당자·기한을 확정 못하면 **"확인 필요 / 미지정"** 상태로 (강제로 채우지 않음)
-- [ ] 분석 로딩 상태 · 우측 `AiAssistantPanel` 연동
+- [x] AI Service (`com.illoon.ai`) — `AiAnalyzer`/`SpeechToText` 인터페이스 + provider 별 구현
+- [x] `provider=mock` (기본): OpenAI 키 없이 규칙 기반 브리핑 — 이름·날짜(9/15·다음주·금요일)·우선순위(긴급→HIGH) 추출, `.txt` 파일은 mock STT가 그대로 읽음
+- [x] `provider=openai`: Spring AI `ChatClient.entity(Briefing.class)` Structured Output + Whisper STT (`OpenaiSpeechToText`), `OPENAI_API_KEY` 필요
+- [x] `POST .../analyze` — audio 있으면 STT→content 저장→분석, 없으면 저장된 content 분석
+- [x] `GET .../summary` — 저장된 `MeetingAnalysis` 반환 (없으면 404)
+- [x] FE: `AiBriefing` · `ActionPointCard`(제목·담당자·기한·우선순위 수정)
+- [x] 담당자·기한 확정 불가 시 `null` (미지정) — 강제로 채우지 않음, `assigneeHint` 매칭 실패 시 안내
+- [x] 분석 로딩 상태, "다시 분석" 지원
+
+```http
+POST /api/meetings/{meetingId}/analyze   multipart(audio) 또는 빈 본문(텍스트)
+GET  /api/meetings/{meetingId}/summary    { summary, decisions[], actionPoints[], source }
+```
 
 ### 핵심 UX — AI가 Task를 자동 확정하지 않는다
 
@@ -183,9 +191,12 @@ GET  /api/meetings/{meetingId}/summary
 AI 분석 → Action Point → 사용자 검토/수정 → [업무로 등록] → Task → Sprint 배정
 ```
 
-- [ ] "업무로 등록" → `POST /api/tasks` 호출 시 `meeting_id` 연결
+- [x] "업무로 등록" → `POST /api/tasks` 에 `meetingId` 연결, 등록된 항목은 잠금 표시
 
-**완료 기준 (시나리오 B, D)**: 회의 텍스트 입력 → AI 분석하기 → 브리핑 + Action Point 표시 → 담당자/기한 수정 → 업무로 등록 → Task 상세에서 "관련 회의"로 역이동.
+**BE**: `ai/domain`(`MeetingAnalysis`(회의당 1건) · `ActionPointItem`(embeddable) · `AnalysisSource`) · `analyzer/`(`AiAnalyzer` · `Briefing` · `MockAiAnalyzer` · `OpenAiAnalyzer`) · `stt/`(`SpeechToText` · `MockSpeechToText` · `OpenAiSpeechToText`) · `AiService` · `AiController` · `MeetingResponse.hasSummary` 연동
+**설정**: `AI_PROVIDER=mock|openai` (기본 mock), `OPENAI_API_KEY`, `OPENAI_CHAT_MODEL`(gpt-4o-mini), `OPENAI_STT_MODEL`(whisper-1)
+
+**완료 기준 (시나리오 B, D)**: 회의 텍스트/녹음본 → AI 분석하기 → 브리핑 + Action Point → 담당자/기한 수정 → 업무로 등록 → Task 상세에서 "관련 회의" 역이동 — curl E2E 검증 완료 (텍스트 분석 200, 빈 내용 400, 미분석 summary 404, 멀티파트 audio→source AUDIO+content 갱신, Action Point→Task+meetingId).
 
 ---
 

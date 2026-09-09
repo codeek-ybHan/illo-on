@@ -18,6 +18,24 @@ app:
     allowed-origins: http://localhost:5173,http://localhost:5174
   invite:
     base-url: ${INVITE_BASE_URL:http://localhost:5173/invite/}
+  ai:
+    # mock: OpenAI 호출 없이 규칙 기반 브리핑 (키 없이 데모 가능)
+    # openai: Spring AI + OpenAI (OPENAI_API_KEY 필요)
+    provider: ${AI_PROVIDER:mock}
+
+# Spring AI — provider=openai 일 때만 실제 사용
+spring.ai:
+  openai:
+    api-key: ${OPENAI_API_KEY:not-configured}
+    chat:
+      options:
+        model: ${OPENAI_CHAT_MODEL:gpt-4o-mini}
+        temperature: 0.2
+    audio:
+      transcription:
+        options:
+          model: ${OPENAI_STT_MODEL:whisper-1}
+          language: ko
 
 springdoc:
   swagger-ui:
