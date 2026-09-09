@@ -1,6 +1,12 @@
 <script setup>
+import { ref } from 'vue'
 import AppIcon from './AppIcon.vue'
 import ProgressBar from './ProgressBar.vue'
+
+const rootEl = ref(null)
+function onKey() {
+  rootEl.value?.click()
+}
 
 defineProps({
   icon: { type: String, default: 'sprint' },
@@ -10,11 +16,20 @@ defineProps({
   metricValue: { type: String, default: '' },
   progress: { type: Number, default: null },
   progressColor: { type: String, default: 'var(--c-accent)' },
+  clickable: { type: Boolean, default: false },
 })
 </script>
 
 <template>
-  <article class="stat-card">
+  <article
+    ref="rootEl"
+    class="stat-card"
+    :class="{ 'is-clickable': clickable }"
+    :role="clickable ? 'button' : null"
+    :tabindex="clickable ? 0 : null"
+    @keydown.enter="clickable && onKey()"
+    @keydown.space.prevent="clickable && onKey()"
+  >
     <header class="stat-card__top">
       <span class="stat-card__title">
         <span class="stat-card__icon"><AppIcon :name="icon" :size="16" /></span>
@@ -42,6 +57,20 @@ defineProps({
   border: 1px solid var(--c-border);
   border-radius: var(--r-lg);
   box-shadow: var(--shadow-card);
+}
+.stat-card.is-clickable {
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.stat-card.is-clickable:hover {
+  border-color: var(--c-border-strong);
+  box-shadow: var(--shadow-shell);
+}
+.stat-card.is-clickable:focus-visible {
+  outline: 2px solid var(--c-primary);
+  outline-offset: 2px;
 }
 .stat-card__top {
   display: flex;

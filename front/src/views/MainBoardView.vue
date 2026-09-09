@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
@@ -25,6 +25,47 @@ const boardLoading = ref(true)
 
 const greeting = computed(() => `${auth.user?.name || ''}님, 좋은 아침이에요 👋`.trim())
 const openCount = computed(() => myTasks.value.filter((t) => t.status !== 'DONE').length)
+
+// 요약 칩으로 아래 Task 목록을 좁혀 보기
+const tasksSectionEl = ref(null)
+const scheduleSectionEl = ref(null)
+const taskScope = ref('open') // 'open' | 'today' | 'soon'
+
+const SCOPE_LABEL = { open: '미완료', today: '오늘 마감', soon: '마감 임박(3일)' }
+
+function isSameDay(dt) {
+  if (!dt) return false
+  const d = new Date(dt)
+  const n = new Date()
+  return d.toDateString() === n.toDateString()
+}
+function withinDays(dt, n) {
+  if (!dt) return false
+  const d = new Date(dt)
+  d.setHours(0, 0, 0, 0)
+  const from = new Date()
+  from.setHours(0, 0, 0, 0)
+  const to = new Date(from)
+  to.setDate(to.getDate() + n)
+  return d >= from && d <= to
+}
+
+const scopedTasks = computed(() => {
+  const open = myTasks.value.filter((t) => t.status !== 'DONE')
+  if (taskScope.value === 'today') return open.filter((t) => isSameDay(t.dueDate))
+  if (taskScope.value === 'soon') return open.filter((t) => withinDays(t.dueDate, 3))
+  return open
+})
+
+async function focusTasks(scope) {
+  taskScope.value = scope
+  await nextTick()
+  tasksSectionEl.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+async function focusSchedule() {
+  await nextTick()
+  scheduleSectionEl.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
 
 const avgProgress = computed(() => {
   const ps = board.value?.projects ?? []
@@ -58,28 +99,28 @@ const summaries = computed(() => [
     icon: 'project',
     label: '내 Task',
     count: board.value?.openTaskCount ?? openCount.value,
-    to: null,
+    action: () => focusTasks('open'),
   },
   {
     tone: 'peach',
     icon: 'meeting',
     label: '예정 회의',
     count: board.value?.upcomingMeetingCount ?? 0,
-    to: { name: 'meetings' },
+    action: () => router.push({ name: 'meetings' }),
   },
   {
     tone: 'cream',
     icon: 'calendar',
     label: '오늘 마감',
     count: board.value?.todayTaskCount ?? 0,
-    to: null,
+    action: () => focusTasks('today'),
   },
   {
     tone: 'mint',
     icon: 'sprint',
     label: '마감 임박',
     count: board.value?.dueSoonCount ?? 0,
-    to: null,
+    action: () => focusTasks('soon'),
   },
 ])
 
@@ -114,6 +155,8 @@ async function handleStatusChange(task, status) {
         :metric-value="`${avgProgress}%`"
         :progress="avgProgress"
         progress-color="var(--c-lavender-ink)"
+        clickable
+        @click="router.push({ name: 'projects' })"
       />
       <StatCard
         icon="sprint"
@@ -123,6 +166,8 @@ async function handleStatusChange(task, status) {
         :metric-value="sprintDaysLeft != null ? `D-${Math.max(sprintDaysLeft, 0)}` : '—'"
         :progress="primarySprint?.progress ?? 0"
         progress-color="var(--c-accent)"
+        clickable
+        @click="router.push({ name: 'sprints' })"
       />
       <StatCard
         icon="calendar"
@@ -132,6 +177,8 @@ async function handleStatusChange(task, status) {
         :metric-value="`${todayDoneRatio.done} / ${todayDoneRatio.total}`"
         :progress="todayDoneRatio.pct"
         progress-color="var(--c-success)"
+        clickable
+        @click="focusSchedule()"
       />
     </div>
 
@@ -146,18 +193,28 @@ async function handleStatusChange(task, status) {
           :icon="s.icon"
           :label="s.label"
           :count="s.count"
-          @click="s.to && router.push(s.to)"
+          @click="s.action()"
         />
       </div>
     </section>
 
     <!-- 내가 해야 할 Task -->
-    <section>
+    <section ref="tasksSectionEl">
       <h2 class="section-title">
-        내가 해야 할 Task <span class="section-title__count">{{ openCount }}</span>
+        내가 해야 할 Task
+        <span class="section-title__count">{{ scopedTasks.length }}</span>
+        <button
+          v-if="taskScope !== 'open'"
+          type="button"
+          class="scope-pill"
+          @click="taskScope = 'open'"
+        >
+          {{ SCOPE_LABEL[taskScope] }}
+          <AppIcon name="plus" :size="12" class="scope-pill__x" />
+        </button>
       </h2>
       <TaskList
-        :tasks="myTasks"
+        :tasks="scopedTasks"
         :loading="tasksLoading"
         show-project
         @change-status="handleStatusChange"
@@ -189,7 +246,7 @@ async function handleStatusChange(task, status) {
     </section>
 
     <!-- 오늘의 일정 -->
-    <section>
+    <section ref="scheduleSectionEl">
       <h2 class="section-title">
         오늘의 일정 <span class="section-title__count">{{ formatDate(new Date()) }}</span>
       </h2>
@@ -248,6 +305,21 @@ async function handleStatusChange(task, status) {
   margin-left: var(--sp-2);
   font-size: var(--fs-sm);
   color: var(--c-text-muted);
+}
+.scope-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: var(--sp-2);
+  padding: 2px 6px 2px 10px;
+  border-radius: var(--r-full);
+  background: var(--c-primary);
+  color: var(--c-primary-contrast);
+  font-size: var(--fs-xs);
+  vertical-align: middle;
+}
+.scope-pill__x {
+  transform: rotate(45deg);
 }
 .proj-grid {
   display: grid;
