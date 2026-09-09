@@ -2,16 +2,15 @@ package com.illoon.ai.stt;
 
 import com.illoon.common.exception.ApiException;
 import com.illoon.common.exception.ErrorCode;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
  * 데모용 STT. 실제 변환 대신, 업로드된 파일이 텍스트/자막 파일이면 그대로 읽고
- * 아니면 안내 문구를 반환한다. (app.ai.provider=mock)
+ * 아니면 안내 문구를 반환한다.
+ * provider=mock 일 때 기본 STT 이자, provider=openai 에서 Whisper 실패 시 폴백.
  */
 @Component
-@ConditionalOnProperty(name = "app.ai.provider", havingValue = "mock", matchIfMissing = true)
 public class MockSpeechToText implements SpeechToText {
 
     @Override

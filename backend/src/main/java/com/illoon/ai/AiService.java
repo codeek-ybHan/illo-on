@@ -4,7 +4,6 @@ import com.illoon.ai.analyzer.AiAnalyzer;
 import com.illoon.ai.analyzer.Briefing;
 import com.illoon.ai.domain.ActionPointItem;
 import com.illoon.ai.domain.AnalysisSource;
-import com.illoon.ai.domain.MeetingAnalysis;
 import com.illoon.ai.dto.BriefingResponse;
 import com.illoon.ai.stt.SpeechToText;
 import com.illoon.common.exception.ApiException;
@@ -35,6 +34,7 @@ public class AiService {
     private final ProjectService projectService;
     private final AiAnalyzer analyzer;
     private final SpeechToText speechToText;
+    private final AiAnalysisStore store;
 
     @Value("${app.ai.provider}")
     private String provider;
@@ -42,18 +42,17 @@ public class AiService {
     /**
      * 회의 분석. audio 가 있으면 STT 로 텍스트를 만들고 회의 내용에 저장한 뒤 분석한다.
      * 없으면 회의에 저장된 내용을 분석한다. (기획서 §11-6)
+     *
+     * <p>느린 외부 호출(STT·LLM)은 트랜잭션 밖에서 수행한다. DB 접근은 앞뒤로 짧게만
+     * ({@link AiAnalysisStore}) — 수십 초짜리 OpenAI 호출이 커넥션 풀을 고갈시키지 않도록.
      */
-    @Transactional
     public BriefingResponse analyze(Long meetingId, Long userId, MultipartFile audio) {
-        Meeting meeting = meetingRepository.findById(meetingId)
-                .orElseThrow(() -> new ApiException(ErrorCode.MEETING_NOT_FOUND));
-        projectService.requireMember(meeting.getProjectId(), userId);
+        Meeting meeting = store.loadForMember(meetingId, userId);
 
         AnalysisSource source;
         String text;
         if (audio != null && !audio.isEmpty()) {
-            text = speechToText.transcribe(audio);
-            meeting.update(meeting.getTitle(), text, meeting.getMeetingAt()); // STT 결과 저장
+            text = speechToText.transcribe(audio); // 느림 — 트랜잭션 밖
             source = AnalysisSource.AUDIO;
         } else {
             text = meeting.getContent();
@@ -63,19 +62,17 @@ public class AiService {
             throw new ApiException(ErrorCode.MEETING_CONTENT_EMPTY);
         }
 
-        Briefing briefing = analyzer.analyze(text);
+        Briefing briefing = analyzer.analyze(text); // 느림 — 트랜잭션 밖
 
-        MeetingAnalysis analysis = analysisRepository.findByMeetingId(meetingId)
-                .orElseGet(() -> new MeetingAnalysis(meetingId, source));
-        analysis.apply(
-                nullToEmpty(briefing.overview()),
+        return store.save(
+                meetingId,
                 source,
+                source == AnalysisSource.AUDIO ? text : null,
+                nullToEmpty(briefing.overview()),
                 safe(briefing.highlights()),
                 safe(briefing.decisions()),
-                toItems(safe(briefing.actionPoints())));
-        analysisRepository.save(analysis);
-
-        return BriefingResponse.from(analysis, provider);
+                toItems(safe(briefing.actionPoints())),
+                provider);
     }
 
     @Transactional(readOnly = true)
