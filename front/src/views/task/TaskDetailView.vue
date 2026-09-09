@@ -11,7 +11,7 @@ import BaseModal from '@/components/common/BaseModal.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import AppIcon from '@/components/common/AppIcon.vue'
 import TaskForm from '@/components/task/TaskForm.vue'
-import { formatDate } from '@/utils/date'
+import { formatDate, formatDue } from '@/utils/date'
 
 const route = useRoute()
 const router = useRouter()
@@ -103,8 +103,8 @@ async function handleDelete() {
               <dd>{{ current.assigneeName || '미지정' }}</dd>
             </div>
             <div class="field">
-              <dt>마감일</dt>
-              <dd>{{ current.dueDate ? formatDate(current.dueDate) : '미정' }}</dd>
+              <dt>마감일시</dt>
+              <dd>{{ current.dueDate ? formatDue(current.dueDate) : '미정' }}</dd>
             </div>
             <div class="field">
               <dt>프로젝트</dt>

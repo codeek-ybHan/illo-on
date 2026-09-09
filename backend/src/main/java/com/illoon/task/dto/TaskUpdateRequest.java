@@ -4,7 +4,7 @@ import com.illoon.task.domain.TaskPriority;
 import com.illoon.task.domain.TaskStatus;
 import jakarta.validation.constraints.Size;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 /**
  * PUT — 전체 교체. 상태 변경도 이 엔드포인트로 (별도 status API 없음).
@@ -15,7 +15,7 @@ public record TaskUpdateRequest(
 
         String description,
         Long assigneeId,
-        LocalDate dueDate,
+        LocalDateTime dueDate,
         TaskPriority priority,
         TaskStatus status,
         Long sprintId,

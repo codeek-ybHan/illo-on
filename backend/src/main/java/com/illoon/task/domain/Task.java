@@ -7,7 +7,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 /**
  * 기획서 §10-6 TASK. 프로젝트에 속하고, 생성 맥락 회의(meeting_id)와
@@ -42,7 +42,7 @@ public class Task extends BaseTimeEntity {
     @Column(columnDefinition = "text")
     private String description;
 
-    private LocalDate dueDate;
+    private LocalDateTime dueDate;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 10)
@@ -54,7 +54,7 @@ public class Task extends BaseTimeEntity {
 
     @Builder
     private Task(Long projectId, Long meetingId, Long sprintId, Long assigneeId,
-                String title, String description, LocalDate dueDate,
+                String title, String description, LocalDateTime dueDate,
                 TaskPriority priority, TaskStatus status) {
         this.projectId = projectId;
         this.meetingId = meetingId;
@@ -73,7 +73,7 @@ public class Task extends BaseTimeEntity {
     }
 
     /** PUT — 전체 교체 (기획서 §11-4, 별도 status API 없음) */
-    public void update(String title, String description, Long assigneeId, LocalDate dueDate,
+    public void update(String title, String description, Long assigneeId, LocalDateTime dueDate,
                        TaskPriority priority, TaskStatus status, Long sprintId, Long meetingId) {
         if (title != null && !title.isBlank()) this.title = title;
         this.description = description;

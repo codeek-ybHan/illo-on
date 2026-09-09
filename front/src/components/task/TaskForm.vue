@@ -119,7 +119,12 @@ async function onSubmit() {
           :options="assigneeOptions"
           placeholder="미지정"
         />
-        <BaseDatePicker v-model="form.dueDate" label="마감일" placeholder="마감일 선택" />
+        <BaseDatePicker
+          v-model="form.dueDate"
+          label="마감일시"
+          placeholder="마감일시 선택"
+          with-time
+        />
       </div>
 
       <div class="tform__row">

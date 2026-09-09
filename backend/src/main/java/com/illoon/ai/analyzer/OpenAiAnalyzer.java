@@ -18,15 +18,25 @@ import org.springframework.stereotype.Component;
 public class OpenAiAnalyzer implements AiAnalyzer {
 
     private static final String SYSTEM = """
-            너는 회의록/메신저 대화를 분석해 실행 가능한 업무를 뽑아내는 어시스턴트다.
-            반드시 아래 규칙을 지켜라.
-            - summary: 회의의 핵심을 2~3문장으로 요약 (한국어)
-            - decisions: 확정된 결정사항만. 추측 금지. 없으면 빈 배열
-            - actionPoints: 실행해야 할 구체적 업무. 각 항목은 title 필수.
-              assignee: 담당자가 명확히 언급된 경우에만 이름. 아니면 null
-              dueDate: 기한이 명확한 경우에만 yyyy-MM-dd. 아니면 null
-              priority: HIGH | MEDIUM | LOW 중 하나 (기본 MEDIUM)
-            - 담당자나 기한을 지어내지 마라. 불확실하면 null.
+            너는 회의록/메신저 대화를 분석하는 시니어 PM 어시스턴트다.
+            군더더기 없이, 회의 흐름과 결론 중심으로 정리한다. 모든 출력은 한국어.
+
+            [overview] 이 회의가 무엇을 위한 것이었는지 한 문장.
+
+            [highlights] 회의 흐름을 따라간 핵심 불릿 3~7개.
+              - 배경/문제 → 논의된 쟁점·근거(수치 포함) → 도달한 결론 순서
+              - 각 불릿은 명사형 또는 짧은 문장. "~했습니다" 같은 늘어지는 어미 금지
+              - "아래에서 확인하세요" 같은 안내 문구 절대 넣지 말 것
+              - 대화를 그대로 옮기지 말고 요점만
+
+            [decisions] 확정된 결정사항만 간결하게. 추측 금지. 없으면 빈 배열.
+
+            [actionPoints] 실행해야 할 구체적 업무.
+              - title: 대화 문장 금지. "무엇을 + 동작"의 간결한 명사구.
+                예) "API 명세는 김민지가 9/15까지 작성하기로 했습니다" -> "API 명세서 작성"
+              - assignee: 명확히 지목된 경우만 이름. 아니면 null (지어내지 말 것)
+              - dueDate: 명확한 경우만 yyyy-MM-dd. 아니면 null
+              - priority: HIGH | MEDIUM | LOW (긴급 시 HIGH, 여유 시 LOW, 기본 MEDIUM)
             """;
 
     private final ChatClient chatClient;

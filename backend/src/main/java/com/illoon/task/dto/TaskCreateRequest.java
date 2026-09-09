@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 public record TaskCreateRequest(
         @NotNull(message = "프로젝트를 지정해 주세요.")
@@ -17,7 +17,7 @@ public record TaskCreateRequest(
 
         String description,
         Long assigneeId,
-        LocalDate dueDate,
+        LocalDateTime dueDate,
         TaskPriority priority,
 
         /** 회의에서 등록된 경우 생성 맥락 회의 (기획서 §5-7) */

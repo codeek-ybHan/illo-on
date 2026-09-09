@@ -16,5 +16,6 @@ data/
 .classpath
 .project
 
-# 로컬 환경변수
+# 로컬 환경변수 / 시크릿
 .env
+config/local.properties

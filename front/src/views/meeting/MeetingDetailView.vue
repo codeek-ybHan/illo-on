@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useMeetingStore } from '@/stores/meeting'
@@ -31,6 +31,11 @@ const showDelete = ref(false)
 const deleting = ref(false)
 const audioFile = ref(null)
 const registeredIndexes = ref([])
+
+// overview 없고 highlights 도 없으면 예전(summary) 형식으로 저장된 분석 → 재분석 유도
+const staleBriefing = computed(
+  () => briefing.value && !briefing.value.overview && !briefing.value.highlights?.length,
+)
 
 function onAudioPick(e) {
   audioFile.value = e.target.files?.[0] ?? null
@@ -245,6 +250,11 @@ async function handleDelete() {
         </template>
 
         <div v-if="analyzing" class="skeleton" style="height: 120px" />
+
+        <div v-else-if="briefing && staleBriefing" class="stale-note">
+          예전 형식으로 분석된 회의입니다. <b>다시 분석</b>을 눌러 최신 형식으로 갱신하세요.
+        </div>
+
         <AiBriefing
           v-else-if="briefing"
           :briefing="briefing"
@@ -401,6 +411,13 @@ async function handleDelete() {
 .upload-hint {
   font-size: var(--fs-xs);
   color: var(--c-text-muted);
+}
+.stale-note {
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-md);
+  background: var(--c-cream);
+  color: var(--c-cream-ink);
+  font-size: var(--fs-sm);
 }
 .briefing-title {
   display: inline-flex;

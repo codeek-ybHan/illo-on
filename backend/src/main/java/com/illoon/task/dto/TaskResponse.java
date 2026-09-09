@@ -4,7 +4,6 @@ import com.illoon.task.domain.Task;
 import com.illoon.task.domain.TaskPriority;
 import com.illoon.task.domain.TaskStatus;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 public record TaskResponse(
@@ -17,7 +16,7 @@ public record TaskResponse(
         String description,
         Long assigneeId,
         String assigneeName,
-        LocalDate dueDate,
+        LocalDateTime dueDate,
         TaskPriority priority,
         TaskStatus status,
         LocalDateTime createdAt

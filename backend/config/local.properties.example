@@ -1,0 +1,9 @@
+# 복사해서 쓰세요:  cp config/local.properties.example config/local.properties
+# 그 다음 아래 값을 채우고 백엔드를 재시작하면 OpenAI 분석이 켜집니다.
+
+app.ai.provider=openai
+spring.ai.openai.api-key=sk-...
+
+# 선택
+spring.ai.openai.chat.options.model=gpt-4o-mini
+spring.ai.openai.audio.transcription.options.model=whisper-1

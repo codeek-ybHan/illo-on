@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import AppIcon from '@/components/common/AppIcon.vue'
-import { formatDate, daysUntil } from '@/utils/date'
+import { formatDue, daysUntil } from '@/utils/date'
 
 const props = defineProps({
   task: { type: Object, required: true },
@@ -25,7 +25,7 @@ const due = computed(() => {
   if (d < 0) return { text: `${-d}일 지남`, tone: 'over' }
   if (d === 0) return { text: '오늘 마감', tone: 'today' }
   if (d <= 3) return { text: `D-${d}`, tone: 'soon' }
-  return { text: formatDate(props.task.dueDate), tone: 'normal' }
+  return { text: formatDue(props.task.dueDate), tone: 'normal' }
 })
 </script>
 

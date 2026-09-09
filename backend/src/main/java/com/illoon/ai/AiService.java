@@ -15,11 +15,13 @@ import com.illoon.project.ProjectService;
 import com.illoon.task.domain.TaskPriority;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -33,6 +35,9 @@ public class AiService {
     private final ProjectService projectService;
     private final AiAnalyzer analyzer;
     private final SpeechToText speechToText;
+
+    @Value("${app.ai.provider}")
+    private String provider;
 
     /**
      * 회의 분석. audio 가 있으면 STT 로 텍스트를 만들고 회의 내용에 저장한 뒤 분석한다.
@@ -63,13 +68,14 @@ public class AiService {
         MeetingAnalysis analysis = analysisRepository.findByMeetingId(meetingId)
                 .orElseGet(() -> new MeetingAnalysis(meetingId, source));
         analysis.apply(
-                nullToEmpty(briefing.summary()),
+                nullToEmpty(briefing.overview()),
                 source,
+                safe(briefing.highlights()),
                 safe(briefing.decisions()),
                 toItems(safe(briefing.actionPoints())));
         analysisRepository.save(analysis);
 
-        return BriefingResponse.from(analysis);
+        return BriefingResponse.from(analysis, provider);
     }
 
     @Transactional(readOnly = true)
@@ -78,7 +84,7 @@ public class AiService {
                 .orElseThrow(() -> new ApiException(ErrorCode.MEETING_NOT_FOUND));
         projectService.requireMember(meeting.getProjectId(), userId);
         return analysisRepository.findByMeetingId(meetingId)
-                .map(BriefingResponse::from)
+                .map(a -> BriefingResponse.from(a, provider))
                 .orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND, "아직 AI 분석 결과가 없습니다."));
     }
 
@@ -90,16 +96,19 @@ public class AiService {
                 .map(ap -> ActionPointItem.builder()
                         .title(ap.title().trim())
                         .assigneeHint(blankToNull(ap.assignee()))
-                        .dueDate(parseDate(ap.dueDate()))
+                        .dueDate(parseDue(ap.dueDate()))
                         .priority(parsePriority(ap.priority()))
                         .build())
                 .toList();
     }
 
-    private LocalDate parseDate(String s) {
+    /** LLM 이 "yyyy-MM-dd" 또는 "yyyy-MM-ddTHH:mm" 을 줄 수 있음. 날짜만이면 18:00(업무 마감)으로. */
+    private LocalDateTime parseDue(String s) {
         if (s == null || s.isBlank()) return null;
+        String t = s.trim();
         try {
-            return LocalDate.parse(s.trim());
+            if (t.length() > 10) return LocalDateTime.parse(t.length() == 16 ? t : t.substring(0, 16));
+            return LocalDate.parse(t).atTime(18, 0);
         } catch (Exception e) {
             return null;
         }
@@ -132,6 +141,6 @@ public class AiService {
     }
 
     public Optional<BriefingResponse> findAnalysis(Long meetingId) {
-        return analysisRepository.findByMeetingId(meetingId).map(BriefingResponse::from);
+        return analysisRepository.findByMeetingId(meetingId).map(a -> BriefingResponse.from(a, provider));
     }
 }

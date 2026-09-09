@@ -50,6 +50,17 @@ export function formatDateTime(value) {
   })
 }
 
+/** 마감 표시: 시각이 있으면 'M월 D일 (요일) HH:mm', 자정이면 날짜만 */
+export function formatDue(value) {
+  if (!value) return '-'
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return '-'
+  const base = formatDateShort(d)
+  if (d.getHours() === 0 && d.getMinutes() === 0) return base
+  const p = (n) => String(n).padStart(2, '0')
+  return `${base} ${p(d.getHours())}:${p(d.getMinutes())}`
+}
+
 /** 마감까지 남은 일수 (양수: 남음, 0: 오늘, 음수: 지남) */
 export function daysUntil(value) {
   if (!value) return null

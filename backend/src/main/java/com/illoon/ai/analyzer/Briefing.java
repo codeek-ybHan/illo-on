@@ -3,11 +3,14 @@ package com.illoon.ai.analyzer;
 import java.util.List;
 
 /**
- * LLM Structured Output 대상. LLM이 이 형태의 JSON을 채워 반환한다.
- * (기획서 §8-2)
+ * LLM Structured Output 대상. (기획서 §8-2)
  */
 public record Briefing(
-        String summary,
+        /** 한 줄 요약 ("한눈에 보기") */
+        String overview,
+        /** 회의 흐름·핵심 논의·결론 중심의 불릿 (군더더기 없이) */
+        List<String> highlights,
+        /** 확정된 결정사항 */
         List<String> decisions,
         List<ActionPoint> actionPoints
 ) {

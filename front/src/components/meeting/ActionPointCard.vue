@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, computed, watch } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 import BaseInput from '@/components/common/BaseInput.vue'
 import BaseSelect from '@/components/common/BaseSelect.vue'
 import BaseButton from '@/components/common/BaseButton.vue'
@@ -19,23 +19,49 @@ const PRIORITY_OPTIONS = [
 ]
 
 const form = reactive({ title: '', assigneeId: '', dueDate: '', priority: 'MEDIUM' })
+const userTouchedAssignee = ref(false)
 
 const assigneeOptions = computed(() => [
   { label: '미지정', value: '' },
   ...props.members.map((m) => ({ label: m.name, value: String(m.userId) })),
 ])
 
+/** AI가 추정한 이름 → 멤버 매칭 (공백 제거, 부분 일치 허용) */
+function matchAssignee(hint) {
+  if (!hint) return null
+  const h = String(hint).replace(/\s/g, '')
+  return (
+    props.members.find((m) => m.name.replace(/\s/g, '') === h) ||
+    props.members.find((m) => {
+      const n = m.name.replace(/\s/g, '')
+      return n.includes(h) || h.includes(n)
+    }) ||
+    null
+  )
+}
+
+// action point 가 바뀌면 폼 초기화
 watch(
   () => props.actionPoint,
   (ap) => {
     form.title = ap.title ?? ''
     form.dueDate = ap.dueDate ?? ''
     form.priority = ap.priority ?? 'MEDIUM'
-    // 담당자 후보 이름이 멤버와 일치하면 미리 선택
-    const match = props.members.find((m) => m.name === ap.assigneeHint)
+    userTouchedAssignee.value = false
+    const match = matchAssignee(ap.assigneeHint)
     form.assigneeId = match ? String(match.userId) : ''
   },
   { immediate: true },
+)
+
+// 멤버 목록이 뒤늦게 로드되면 다시 매칭 (사용자가 직접 고르기 전까지만)
+watch(
+  () => props.members,
+  () => {
+    if (userTouchedAssignee.value || form.assigneeId) return
+    const match = matchAssignee(props.actionPoint.assigneeHint)
+    if (match) form.assigneeId = String(match.userId)
+  },
 )
 
 function register() {
@@ -57,11 +83,13 @@ function register() {
         label="담당자"
         :options="assigneeOptions"
         :disabled="registered"
+        @update:model-value="userTouchedAssignee = true"
       />
       <BaseDatePicker
         v-model="form.dueDate"
         label="기한"
         placeholder="기한 선택"
+        with-time
         :disabled="registered"
       />
       <BaseSelect

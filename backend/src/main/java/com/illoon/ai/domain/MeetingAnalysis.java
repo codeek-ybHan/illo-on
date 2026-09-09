@@ -28,11 +28,17 @@ public class MeetingAnalysis extends BaseTimeEntity {
     private Long meetingId;
 
     @Column(columnDefinition = "text")
-    private String summary;
+    private String overview;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 10)
     private AnalysisSource source;
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "meeting_analysis_highlight", joinColumns = @JoinColumn(name = "analysis_id"))
+    @Column(name = "highlight", length = 500)
+    @OrderColumn(name = "seq")
+    private List<String> highlights = new ArrayList<>();
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "meeting_analysis_decision", joinColumns = @JoinColumn(name = "analysis_id"))
@@ -50,10 +56,12 @@ public class MeetingAnalysis extends BaseTimeEntity {
         this.source = source;
     }
 
-    public void apply(String summary, AnalysisSource source,
+    public void apply(String overview, AnalysisSource source, List<String> highlights,
                       List<String> decisions, List<ActionPointItem> actionPoints) {
-        this.summary = summary;
+        this.overview = overview;
         this.source = source;
+        this.highlights.clear();
+        this.highlights.addAll(highlights);
         this.decisions.clear();
         this.decisions.addAll(decisions);
         this.actionPoints.clear();

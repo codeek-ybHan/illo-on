@@ -10,7 +10,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 /**
  * AI가 추출한 Action Point (검토 전). 담당자/기한을 확정 못 하면 null.
@@ -28,14 +28,14 @@ public class ActionPointItem {
     private String assigneeHint;
 
     @Column(name = "due_date")
-    private LocalDate dueDate;
+    private LocalDateTime dueDate;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "priority", length = 10)
     private TaskPriority priority;
 
     @Builder
-    public ActionPointItem(String title, String assigneeHint, LocalDate dueDate, TaskPriority priority) {
+    public ActionPointItem(String title, String assigneeHint, LocalDateTime dueDate, TaskPriority priority) {
         this.title = title;
         this.assigneeHint = assigneeHint;
         this.dueDate = dueDate;

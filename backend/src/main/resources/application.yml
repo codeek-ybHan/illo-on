@@ -3,6 +3,10 @@ spring:
     name: illo-on-backend
   profiles:
     active: dev
+  # 로컬 시크릿(OpenAI 키 등) — backend/config/local.properties 에 넣으면 여기서 자동 로드.
+  # 파일이 없어도 무시(optional). git 에는 커밋되지 않음.
+  config:
+    import: optional:file:config/local.properties
 
 server:
   port: 8080
