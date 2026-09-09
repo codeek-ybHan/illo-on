@@ -14,6 +14,9 @@ dist-ssr
 coverage
 *.local
 
+# Env (.env is committed with dev defaults; local overrides go in .env.local → *.local)
+.env.*.local
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

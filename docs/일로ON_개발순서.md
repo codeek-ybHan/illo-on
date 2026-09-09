@@ -28,21 +28,24 @@
 
 ---
 
-## 1. 인증 — Signup → Login → JWT
+## 1. 인증 — Signup → Login → JWT ✅ (2026-09-09)
 
-- [ ] 회원가입 UI (`SignupView`) — 이름·이메일·비밀번호
-- [ ] 로그인 UI (`LoginView`)
-- [ ] `POST /api/auth/signup` — 이메일 중복 확인 → BCrypt 암호화 저장
-- [ ] `POST /api/auth/login` — JWT 발급
-- [ ] JWT 저장 + Axios Authorization 헤더 처리
-- [ ] `stores/auth.js` — 로그인 상태 / 사용자 정보
-- [ ] Router Guard — 미인증 시 `/login` 리다이렉트
+- [x] 회원가입 UI (`SignupView`) — 이름·이메일·비밀번호, 클라이언트 검증, 에러 표시
+- [x] 로그인 UI (`LoginView`) — `redirect` 쿼리 복귀, 가입 완료 안내
+- [x] `POST /api/auth/signup` — `User`(table `users`) · `UserRepository` · 이메일 중복 409 · BCrypt 저장 · 201 반환
+- [x] `POST /api/auth/login` — 비밀번호 검증 · `JwtTokenProvider` 토큰 발급 · `{ token, user }`
+- [x] JWT + user localStorage 저장 (`utils/token.js`), axios Authorization 헤더 (Phase 0)
+- [x] `stores/auth.js` — `login` / `signup` / `logout` 액션, 새로고침 후 상태 복원
+- [x] Router Guard (Phase 0) + `AppRail` 계정 팝오버 로그아웃
+- [x] `GlobalExceptionHandler` 보강 — 404(NoResourceFound) · 400(malformed body)
 
 ```text
 Signup → Login → JWT → 인증 상태 관리
 ```
 
-**완료 기준**: 회원가입 → 로그인 → 메인보드 진입, 새로고침해도 로그인 유지, 만료 토큰이면 로그인 화면으로.
+**완료 기준**: 회원가입 → 로그인 → 메인보드 진입, 새로고침해도 로그인 유지, 만료/무효 토큰이면 로그인 화면으로 — curl E2E 검증 완료 (signup 201 / dup 409 / 검증 400, login 200+JWT / 실패 401, 보호 라우트 401→토큰시 통과, CORS :5173).
+
+**API 검증 방법**: `cd backend && ./mvnw spring-boot:run` → Swagger `http://localhost:8080/swagger-ui.html` 에서 Auth 태그.
 
 ---
 

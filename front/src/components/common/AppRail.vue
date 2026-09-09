@@ -1,5 +1,11 @@
 <script setup>
+import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 import AppIcon from './AppIcon.vue'
+
+const router = useRouter()
+const auth = useAuthStore()
 
 const menu = [
   { to: { name: 'mainboard' }, icon: 'home', label: '메인보드' },
@@ -8,6 +14,15 @@ const menu = [
   { to: { name: 'project-detail', params: { id: 1 } }, icon: 'project', label: '프로젝트' },
   { to: { name: 'sprints' }, icon: 'sprint', label: 'Sprint' },
 ]
+
+const accountOpen = ref(false)
+const initial = computed(() => auth.user?.name?.trim()?.charAt(0) || '?')
+
+function logout() {
+  accountOpen.value = false
+  auth.logout()
+  router.replace({ name: 'login' })
+}
 </script>
 
 <template>
@@ -41,7 +56,25 @@ const menu = [
     </div>
 
     <div class="rail__spacer" />
-    <button class="rail__avatar" type="button" title="내 계정" aria-label="내 계정">일</button>
+
+    <div class="rail__account">
+      <button
+        class="rail__avatar"
+        type="button"
+        aria-label="내 계정"
+        :aria-expanded="accountOpen"
+        @click="accountOpen = !accountOpen"
+      >
+        {{ initial }}
+      </button>
+
+      <div v-if="accountOpen" class="account-pop">
+        <p class="account-pop__name">{{ auth.user?.name || '사용자' }}</p>
+        <p class="account-pop__email">{{ auth.user?.email }}</p>
+        <button class="account-pop__logout" type="button" @click="logout">로그아웃</button>
+      </div>
+      <div v-if="accountOpen" class="rail__backdrop" @click="accountOpen = false" />
+    </div>
   </nav>
 </template>
 
@@ -128,6 +161,9 @@ const menu = [
 .rail__spacer {
   flex: 1;
 }
+.rail__account {
+  position: relative;
+}
 .rail__avatar {
   display: grid;
   place-items: center;
@@ -138,5 +174,45 @@ const menu = [
   color: var(--c-accent);
   font-size: var(--fs-sm);
   font-weight: 700;
+}
+.rail__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+}
+.account-pop {
+  position: absolute;
+  left: calc(100% + 10px);
+  bottom: 0;
+  z-index: 40;
+  width: 200px;
+  padding: var(--sp-3);
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-pop);
+}
+.account-pop__name {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+.account-pop__email {
+  margin-top: 2px;
+  font-size: var(--fs-xs);
+  color: var(--c-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.account-pop__logout {
+  margin-top: var(--sp-3);
+  width: 100%;
+  height: 34px;
+  border-radius: var(--r-sm);
+  background: var(--c-surface-alt);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+}
+.account-pop__logout:hover {
+  background: var(--c-border);
 }
 </style>
