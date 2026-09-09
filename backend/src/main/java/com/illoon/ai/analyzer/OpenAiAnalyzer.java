@@ -1,11 +1,10 @@
 package com.illoon.ai.analyzer;
 
-import com.illoon.common.exception.ApiException;
-import com.illoon.common.exception.ErrorCode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
@@ -16,6 +15,7 @@ import java.time.LocalDate;
  */
 @Slf4j
 @Component
+@Primary
 @ConditionalOnProperty(name = "app.ai.provider", havingValue = "openai")
 public class OpenAiAnalyzer implements AiAnalyzer {
 
@@ -43,9 +43,11 @@ public class OpenAiAnalyzer implements AiAnalyzer {
             """;
 
     private final ChatClient chatClient;
+    private final MockAiAnalyzer fallback;
 
-    public OpenAiAnalyzer(ChatModel chatModel) {
+    public OpenAiAnalyzer(ChatModel chatModel, MockAiAnalyzer fallback) {
         this.chatClient = ChatClient.builder(chatModel).defaultSystem(SYSTEM).build();
+        this.fallback = fallback;
     }
 
     @Override
@@ -58,8 +60,9 @@ public class OpenAiAnalyzer implements AiAnalyzer {
                     .call()
                     .entity(Briefing.class);
         } catch (Exception e) {
-            log.error("OpenAI analyze failed", e);
-            throw new ApiException(ErrorCode.AI_ANALYZE_FAILED);
+            // OpenAI 장애·쿼터 초과 등 → 502 대신 규칙 기반 분석으로 degrade
+            log.warn("OpenAI analyze failed, falling back to rule-based analyzer: {}", e.getMessage());
+            return fallback.analyze(meetingText);
         }
     }
 }

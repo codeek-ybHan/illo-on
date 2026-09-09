@@ -1,0 +1,7 @@
+target/
+data/
+config/local.properties
+*.mv.db
+*.trace.db
+.idea/
+.vscode/

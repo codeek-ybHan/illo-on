@@ -1,0 +1,49 @@
+services:
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: illo_on
+      MYSQL_USER: illoon
+      MYSQL_PASSWORD: illoon
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - illoon-db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build: ./backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_HOST: db
+      DB_PORT: "3306"
+      DB_NAME: illo_on
+      DB_USER: illoon
+      DB_PASSWORD: illoon
+      JWT_SECRET: ${JWT_SECRET:-illo-on-compose-secret-change-me-0123456789-0123456789-0123456789}
+      INVITE_BASE_URL: http://localhost:5173/invite/
+      # OpenAI 분석: 셸에 OPENAI_API_KEY 를 export 하면 켜짐. 없으면 규칙 기반(mock).
+      AI_PROVIDER: ${AI_PROVIDER:-mock}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-not-configured}
+    # prod 프로파일은 ddl-auto=validate 라 스키마가 미리 있어야 한다.
+    # 데모 편의를 위해 첫 기동 시 자동 생성(update)으로 오버라이드한다.
+    # 실제 운영에서는 이 줄을 지우고 DBML(docs/일로ON_ERD.md) 기준으로 스키마를 관리할 것.
+    command: ["java", "-jar", "/app/app.jar", "--spring.jpa.hibernate.ddl-auto=update"]
+    ports:
+      - "8080:8080"
+
+  front:
+    build: ./front
+    depends_on:
+      - backend
+    ports:
+      - "5173:80"
+
+volumes:
+  illoon-db-data:

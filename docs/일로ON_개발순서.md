@@ -217,31 +217,42 @@ AI 분석 → Action Point → 사용자 검토/수정 → [업무로 등록] �
 
 ---
 
-## 8. 전체 연결 및 예외처리
+## 8. 전체 연결 및 예외처리 ✅ (2026-09-09)
 
-```text
-화면 필드 ↕ Request ↕ Response ↕ DB
-```
+- [x] API URL / request·response 필드명 일치 (curl E2E로 phase별 검증)
+- [x] 날짜 ISO-8601 통일 — `LocalDate` / `LocalDateTime` ↔ `toISODate` / `formatDue` / `parseISODate`
+- [x] enum 값 통일 확인 — FE 리터럴 ↔ BE enum grep 대조 일치 (`TODO/IN_PROGRESS/DONE` · `HIGH/MEDIUM/LOW` · `PLANNED/ACTIVE/COMPLETED` · `ADMIN/MEMBER` · `TEXT/AUDIO`)
+- [x] **공통 에러 처리 3단계** (`api/axios.js`):
+  - 401 → 토큰·유저 제거 + 로그인(`redirect` 보관) + info 토스트
+  - 5xx / 네트워크 / 타임아웃 → error 토스트 ("서버에 연결할 수 없습니다" 등)
+  - 4xx → `normalizedMessage` 만, 호출부(폼 인라인 / 뷰 error)에서 처리
+- [x] **전역 토스트** — `utils/toast.js` + `components/common/ToastHost.vue` (App.vue 마운트)
+- [x] 인라인 UI 실패 지점 토스트 연결 — 상태 변경(TaskCard·SprintBoard), 삭제(프로젝트·Task·회의·Sprint), Action Point→업무 등록
+- [x] 로딩 스켈레톤 · 빈 상태 문구 — 전 목록/상세 뷰 적용
+- [x] 서버 에러 응답 규격 `{ code, message, timestamp }` 일관 (`GlobalExceptionHandler`)
 
-- [ ] API URL 일치
-- [ ] request / response 필드명 일치
-- [ ] 날짜 형식 통일 (ISO-8601)
-- [ ] enum 값 통일 — `TODO/IN_PROGRESS/DONE` · `HIGH/MEDIUM/LOW` · `PLANNED/ACTIVE/COMPLETED` · 프로젝트 상태 · 멤버 role(`ADMIN/MEMBER`)
-- [ ] 에러 처리 (400/403/404/500 공통 토스트)
-- [ ] 로딩 처리 (스켈레톤 → 실데이터 전환)
-- [ ] 빈 데이터 처리 (프로젝트·회의·Task 0건)
-- [ ] 로그인 만료(401) 처리 → 로그인 화면 + 원위치 복귀
+**검증**: 401/403/404/400 모두 규격 응답 + FE 처리 확인 (curl E2E).
 
 ---
 
-## 9. 산출물 및 최종 테스트
+## 9. 산출물 및 최종 테스트 ✅ (2026-09-09)
 
-- [ ] Swagger / OpenAPI YAML 최종화
-- [ ] DBML / ERD 최종 검수
-- [ ] UI ↔ API ↔ ERD ↔ AI 전체 연결 검증
-- [ ] (선택) MSA 분리 · API Gateway · Eureka · Docker
-- [ ] 예외 / 오류 시나리오 점검
+- [x] Swagger / OpenAPI YAML 최종화 — `docs/일로ON_openapi.yaml` (30개 엔드포인트, `/v3/api-docs.yaml` 에서 생성). `SecurityConfig` PUBLIC_PATHS 에 swagger/api-docs 경로 허용
+- [x] DBML / ERD 최종 검수 — `docs/일로ON_ERD.md` (`users` 테이블명, `task.due_date` TIMESTAMP, `MEETING_ANALYSIS` + 컬렉션 3종, 마이그레이션 순서)
+- [x] UI ↔ API ↔ ERD ↔ AI 전체 연결 검증 — `backend/scripts/e2e.sh` (시나리오 A~D + 메인보드 집계, **PASS 27 / FAIL 0**)
+- [x] AI 폴백 — OpenAI 호출 실패(쿼터 초과·장애) 시 502 대신 규칙 기반 분석으로 degrade (`OpenAiAnalyzer` → `MockAiAnalyzer`)
+- [x] (선택) Docker — `backend/Dockerfile`(멀티스테이지), `front/Dockerfile`(Vite→nginx), `docker-compose.yml`(+ MySQL). `docker compose up --build`
+- [x] README — 로컬 실행 / AI 설정 / 환경변수 / 테스트 / Docker
+- [x] 예외 / 오류 시나리오 점검 — Phase 8 + e2e 에서 401/403/404/400/409 규격 응답 확인
 - [ ] 5분 발표 준비 (Problem → Solution → 핵심 Flow → AI 기술 → System Design → Closing)
+
+**완료 기준**: 새 클론 → README 대로 백엔드·프론트 기동 → 시나리오 A~D 수행 가능, `bash backend/scripts/e2e.sh` 전체 통과 (mock·openai 양쪽).
+
+```sh
+cd backend && ./mvnw spring-boot:run     # 터미널 1
+cd front && npm install && npm run dev   # 터미널 2
+bash backend/scripts/e2e.sh              # 터미널 3 — PASS 27 / FAIL 0
+```
 
 ---
 

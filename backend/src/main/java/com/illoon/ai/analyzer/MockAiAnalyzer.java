@@ -1,6 +1,5 @@
 package com.illoon.ai.analyzer;
 
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.time.DayOfWeek;
@@ -18,7 +17,6 @@ import java.util.stream.Collectors;
  * (app.ai.provider=mock, 기본값 — 실제 품질은 OpenAiAnalyzer)
  */
 @Component
-@ConditionalOnProperty(name = "app.ai.provider", havingValue = "mock", matchIfMissing = true)
 public class MockAiAnalyzer implements AiAnalyzer {
 
     private static final Pattern SENTENCE = Pattern.compile("[^.!?\\n。]+[.!?。]?");

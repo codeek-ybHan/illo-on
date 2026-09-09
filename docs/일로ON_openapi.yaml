@@ -1,0 +1,1219 @@
+openapi: 3.0.1
+info:
+  title: 일로ON API
+  description: 업무관리 + AI 회의록 서비스 REST API
+  version: v0.1
+servers:
+- url: http://localhost:8080
+  description: Generated server url
+security:
+- bearerAuth: []
+tags:
+- name: Sprint
+  description: "Sprint CRUD (Task 배정은 PUT /api/tasks/{id})"
+- name: Meeting
+  description: 회의 CRUD (AI 분석은 Phase 6)
+- name: Board
+  description: 메인보드 집계
+- name: AI
+  description: 회의 AI 분석 · 브리핑 조회
+- name: Project
+  description: 프로젝트 · 멤버 · 초대
+- name: Auth
+  description: 회원가입 / 로그인
+- name: Invite
+  description: 초대 링크로 프로젝트 참여
+- name: Task
+  description: 업무 CRUD + 내 업무
+paths:
+  /api/tasks/{taskId}:
+    get:
+      tags:
+      - Task
+      summary: Task 상세
+      operationId: get
+      parameters:
+      - name: taskId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/TaskResponse"
+    put:
+      tags:
+      - Task
+      summary: Task 수정 (상태 변경 · Sprint 배정 포함)
+      operationId: update
+      parameters:
+      - name: taskId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskUpdateRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/TaskResponse"
+    delete:
+      tags:
+      - Task
+      summary: Task 삭제
+      operationId: delete
+      parameters:
+      - name: taskId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "204":
+          description: No Content
+  /api/sprints/{sprintId}:
+    get:
+      tags:
+      - Sprint
+      summary: Sprint 상세
+      operationId: get_1
+      parameters:
+      - name: sprintId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SprintResponse"
+    put:
+      tags:
+      - Sprint
+      summary: Sprint 수정 (ADMIN)
+      operationId: update_1
+      parameters:
+      - name: sprintId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SprintUpdateRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SprintResponse"
+    delete:
+      tags:
+      - Sprint
+      summary: Sprint 삭제 (ADMIN) — 배정 Task 는 배정만 해제
+      operationId: delete_1
+      parameters:
+      - name: sprintId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "204":
+          description: No Content
+  /api/projects/{projectId}:
+    get:
+      tags:
+      - Project
+      summary: 프로젝트 상세
+      operationId: get_2
+      parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProjectResponse"
+    put:
+      tags:
+      - Project
+      summary: 프로젝트 수정 (ADMIN)
+      operationId: update_2
+      parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectUpdateRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProjectResponse"
+    delete:
+      tags:
+      - Project
+      summary: 프로젝트 삭제 (ADMIN)
+      operationId: delete_2
+      parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "204":
+          description: No Content
+  /api/meetings/{meetingId}:
+    get:
+      tags:
+      - Meeting
+      summary: 회의 상세
+      operationId: get_3
+      parameters:
+      - name: meetingId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/MeetingDetailResponse"
+    put:
+      tags:
+      - Meeting
+      summary: 회의 수정
+      operationId: update_3
+      parameters:
+      - name: meetingId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MeetingUpdateRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/MeetingDetailResponse"
+    delete:
+      tags:
+      - Meeting
+      summary: 회의 삭제
+      operationId: delete_3
+      parameters:
+      - name: meetingId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "204":
+          description: No Content
+  /api/tasks:
+    get:
+      tags:
+      - Task
+      summary: 프로젝트 Task 목록 (sprintId / meetingId 로 필터)
+      operationId: list
+      parameters:
+      - name: projectId
+        in: query
+        required: true
+        schema:
+          type: integer
+          format: int64
+      - name: sprintId
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int64
+      - name: meetingId
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TaskResponse"
+    post:
+      tags:
+      - Task
+      summary: Task 생성
+      operationId: create
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskCreateRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/TaskResponse"
+  /api/projects:
+    get:
+      tags:
+      - Project
+      summary: 내 프로젝트 목록
+      operationId: list_1
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProjectResponse"
+    post:
+      tags:
+      - Project
+      summary: 프로젝트 생성
+      operationId: create_1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectCreateRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProjectResponse"
+  /api/projects/{projectId}/sprints:
+    get:
+      tags:
+      - Sprint
+      summary: 프로젝트 Sprint 목록
+      operationId: list_2
+      parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SprintResponse"
+    post:
+      tags:
+      - Sprint
+      summary: Sprint 생성 (ADMIN)
+      operationId: create_2
+      parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SprintCreateRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SprintResponse"
+  /api/projects/{projectId}/meetings:
+    get:
+      tags:
+      - Meeting
+      summary: 프로젝트 회의 목록
+      operationId: list_3
+      parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MeetingResponse"
+    post:
+      tags:
+      - Meeting
+      summary: 회의 생성
+      operationId: create_3
+      parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MeetingCreateRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/MeetingDetailResponse"
+  /api/projects/{projectId}/invites:
+    post:
+      tags:
+      - Project
+      summary: 초대 링크 생성 (ADMIN)
+      operationId: createInvite
+      parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/InviteResponse"
+  /api/meetings/{meetingId}/analyze:
+    post:
+      tags:
+      - AI
+      summary: "회의 분석 — audio 파일이 있으면 STT 후 분석, 없으면 회의 내용 분석"
+      operationId: analyze
+      parameters:
+      - name: meetingId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                audio:
+                  type: string
+                  format: binary
+          application/json:
+            schema:
+              type: object
+              properties:
+                audio:
+                  type: string
+                  format: binary
+          application/octet-stream:
+            schema:
+              type: object
+              properties:
+                audio:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/BriefingResponse"
+  /api/invites/{token}/join:
+    post:
+      tags:
+      - Invite
+      summary: 초대 링크로 프로젝트 참여
+      operationId: join
+      parameters:
+      - name: token
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProjectResponse"
+  /api/auth/signup:
+    post:
+      tags:
+      - Auth
+      summary: 회원가입
+      operationId: signup
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignupRequest"
+        required: true
+      responses:
+        "201":
+          description: Created
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+  /api/auth/login:
+    post:
+      tags:
+      - Auth
+      summary: 로그인 (JWT 발급)
+      operationId: login
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+  /api/projects/{projectId}/members:
+    get:
+      tags:
+      - Project
+      summary: 프로젝트 멤버 목록
+      operationId: members
+      parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MemberResponse"
+  /api/meetings/{meetingId}/summary:
+    get:
+      tags:
+      - AI
+      summary: 회의 브리핑 결과 조회
+      operationId: summary
+      parameters:
+      - name: meetingId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/BriefingResponse"
+  /api/me/tasks:
+    get:
+      tags:
+      - Task
+      summary: 내 Task (담당자 = 나)
+      operationId: myTasks
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TaskResponse"
+  /api/me/meetings:
+    get:
+      tags:
+      - Meeting
+      summary: "내 회의 (전 프로젝트, from/to 날짜 필터)"
+      operationId: myMeetings
+      parameters:
+      - name: from
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+      - name: to
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MeetingResponse"
+  /api/me/board:
+    get:
+      tags:
+      - Board
+      summary: 메인보드 데이터 (내 프로젝트·Sprint·오늘 일정·요약 카운트)
+      operationId: board
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/BoardResponse"
+components:
+  schemas:
+    TaskUpdateRequest:
+      type: object
+      properties:
+        title:
+          maxLength: 200
+          minLength: 0
+          type: string
+        description:
+          type: string
+        assigneeId:
+          type: integer
+          format: int64
+        dueDate:
+          type: string
+          format: date-time
+        priority:
+          type: string
+          enum:
+          - HIGH
+          - MEDIUM
+          - LOW
+        status:
+          type: string
+          enum:
+          - TODO
+          - IN_PROGRESS
+          - DONE
+        sprintId:
+          type: integer
+          format: int64
+        meetingId:
+          type: integer
+          format: int64
+    TaskResponse:
+      type: object
+      properties:
+        taskId:
+          type: integer
+          format: int64
+        projectId:
+          type: integer
+          format: int64
+        projectName:
+          type: string
+        meetingId:
+          type: integer
+          format: int64
+        sprintId:
+          type: integer
+          format: int64
+        title:
+          type: string
+        description:
+          type: string
+        assigneeId:
+          type: integer
+          format: int64
+        assigneeName:
+          type: string
+        dueDate:
+          type: string
+          format: date-time
+        priority:
+          type: string
+          enum:
+          - HIGH
+          - MEDIUM
+          - LOW
+        status:
+          type: string
+          enum:
+          - TODO
+          - IN_PROGRESS
+          - DONE
+        createdAt:
+          type: string
+          format: date-time
+    SprintUpdateRequest:
+      type: object
+      properties:
+        name:
+          maxLength: 100
+          minLength: 0
+          type: string
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        status:
+          type: string
+          enum:
+          - PLANNED
+          - ACTIVE
+          - COMPLETED
+    SprintResponse:
+      type: object
+      properties:
+        sprintId:
+          type: integer
+          format: int64
+        projectId:
+          type: integer
+          format: int64
+        name:
+          type: string
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        status:
+          type: string
+          enum:
+          - PLANNED
+          - ACTIVE
+          - COMPLETED
+        taskCount:
+          type: integer
+          format: int64
+        doneCount:
+          type: integer
+          format: int64
+        progress:
+          type: integer
+          format: int32
+        createdAt:
+          type: string
+          format: date-time
+    ProjectUpdateRequest:
+      type: object
+      properties:
+        name:
+          maxLength: 100
+          minLength: 0
+          type: string
+        description:
+          type: string
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        status:
+          type: string
+          enum:
+          - PLANNED
+          - ACTIVE
+          - COMPLETED
+    ProjectResponse:
+      type: object
+      properties:
+        projectId:
+          type: integer
+          format: int64
+        name:
+          type: string
+        description:
+          type: string
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        status:
+          type: string
+          enum:
+          - PLANNED
+          - ACTIVE
+          - COMPLETED
+        myRole:
+          type: string
+          enum:
+          - ADMIN
+          - MEMBER
+        memberCount:
+          type: integer
+          format: int64
+        createdAt:
+          type: string
+          format: date-time
+    MeetingUpdateRequest:
+      type: object
+      properties:
+        title:
+          maxLength: 200
+          minLength: 0
+          type: string
+        content:
+          type: string
+        meetingAt:
+          type: string
+          format: date-time
+        attendeeIds:
+          type: array
+          items:
+            type: integer
+            format: int64
+    Attendee:
+      type: object
+      properties:
+        userId:
+          type: integer
+          format: int64
+        name:
+          type: string
+        email:
+          type: string
+    MeetingDetailResponse:
+      type: object
+      properties:
+        meetingId:
+          type: integer
+          format: int64
+        projectId:
+          type: integer
+          format: int64
+        projectName:
+          type: string
+        title:
+          type: string
+        content:
+          type: string
+        meetingAt:
+          type: string
+          format: date-time
+        attendees:
+          type: array
+          items:
+            $ref: "#/components/schemas/Attendee"
+        hasSummary:
+          type: boolean
+        taskCount:
+          type: integer
+          format: int64
+        createdAt:
+          type: string
+          format: date-time
+    TaskCreateRequest:
+      required:
+      - projectId
+      - title
+      type: object
+      properties:
+        projectId:
+          type: integer
+          format: int64
+        title:
+          maxLength: 200
+          minLength: 0
+          type: string
+        description:
+          type: string
+        assigneeId:
+          type: integer
+          format: int64
+        dueDate:
+          type: string
+          format: date-time
+        priority:
+          type: string
+          enum:
+          - HIGH
+          - MEDIUM
+          - LOW
+        meetingId:
+          type: integer
+          format: int64
+        sprintId:
+          type: integer
+          format: int64
+    ProjectCreateRequest:
+      required:
+      - name
+      type: object
+      properties:
+        name:
+          maxLength: 100
+          minLength: 0
+          type: string
+        description:
+          type: string
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        status:
+          type: string
+          enum:
+          - PLANNED
+          - ACTIVE
+          - COMPLETED
+    SprintCreateRequest:
+      required:
+      - name
+      type: object
+      properties:
+        name:
+          maxLength: 100
+          minLength: 0
+          type: string
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+    MeetingCreateRequest:
+      required:
+      - title
+      type: object
+      properties:
+        title:
+          maxLength: 200
+          minLength: 0
+          type: string
+        content:
+          type: string
+        meetingAt:
+          type: string
+          format: date-time
+        attendeeIds:
+          type: array
+          items:
+            type: integer
+            format: int64
+    InviteResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        inviteUrl:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+    ActionPointResponse:
+      type: object
+      properties:
+        title:
+          type: string
+        assigneeHint:
+          type: string
+        dueDate:
+          type: string
+          format: date-time
+        priority:
+          type: string
+    BriefingResponse:
+      type: object
+      properties:
+        meetingId:
+          type: integer
+          format: int64
+        overview:
+          type: string
+        highlights:
+          type: array
+          items:
+            type: string
+        decisions:
+          type: array
+          items:
+            type: string
+        actionPoints:
+          type: array
+          items:
+            $ref: "#/components/schemas/ActionPointResponse"
+        source:
+          type: string
+        provider:
+          type: string
+        analyzedAt:
+          type: string
+          format: date-time
+    SignupRequest:
+      required:
+      - email
+      - name
+      - password
+      type: object
+      properties:
+        name:
+          maxLength: 50
+          minLength: 0
+          type: string
+        email:
+          type: string
+        password:
+          maxLength: 64
+          minLength: 8
+          type: string
+    UserResponse:
+      type: object
+      properties:
+        userId:
+          type: integer
+          format: int64
+        name:
+          type: string
+        email:
+          type: string
+    LoginRequest:
+      required:
+      - email
+      - password
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        user:
+          $ref: "#/components/schemas/UserResponse"
+    MemberResponse:
+      type: object
+      properties:
+        userId:
+          type: integer
+          format: int64
+        name:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum:
+          - ADMIN
+          - MEMBER
+    MeetingResponse:
+      type: object
+      properties:
+        meetingId:
+          type: integer
+          format: int64
+        projectId:
+          type: integer
+          format: int64
+        projectName:
+          type: string
+        title:
+          type: string
+        meetingAt:
+          type: string
+          format: date-time
+        attendeeCount:
+          type: integer
+          format: int64
+        hasContent:
+          type: boolean
+        hasSummary:
+          type: boolean
+        taskCount:
+          type: integer
+          format: int64
+        createdAt:
+          type: string
+          format: date-time
+    BoardProject:
+      type: object
+      properties:
+        projectId:
+          type: integer
+          format: int64
+        name:
+          type: string
+        status:
+          type: string
+        progress:
+          type: integer
+          format: int32
+        taskCount:
+          type: integer
+          format: int64
+        memberCount:
+          type: integer
+          format: int64
+    BoardResponse:
+      type: object
+      properties:
+        openTaskCount:
+          type: integer
+          format: int32
+        dueSoonCount:
+          type: integer
+          format: int32
+        overdueCount:
+          type: integer
+          format: int32
+        todayTaskCount:
+          type: integer
+          format: int32
+        upcomingMeetingCount:
+          type: integer
+          format: int32
+        projects:
+          type: array
+          items:
+            $ref: "#/components/schemas/BoardProject"
+        activeSprints:
+          type: array
+          items:
+            $ref: "#/components/schemas/BoardSprint"
+        todayMeetings:
+          type: array
+          items:
+            $ref: "#/components/schemas/MeetingResponse"
+        todayTasks:
+          type: array
+          items:
+            $ref: "#/components/schemas/TaskResponse"
+    BoardSprint:
+      type: object
+      properties:
+        sprintId:
+          type: integer
+          format: int64
+        projectId:
+          type: integer
+          format: int64
+        projectName:
+          type: string
+        name:
+          type: string
+        endDate:
+          type: string
+          format: date
+        progress:
+          type: integer
+          format: int32
+        taskCount:
+          type: integer
+          format: int64
+        doneCount:
+          type: integer
+          format: int64
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
