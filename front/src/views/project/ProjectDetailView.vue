@@ -19,6 +19,7 @@ import SprintPanel from '@/components/sprint/SprintPanel.vue'
 import MeetingCard from '@/components/meeting/MeetingCard.vue'
 import MeetingForm from '@/components/meeting/MeetingForm.vue'
 import { formatDate } from '@/utils/date'
+import { toast } from '@/utils/toast'
 
 const route = useRoute()
 const router = useRouter()
@@ -81,13 +82,17 @@ function handleStatusChange(task, status) {
 
 async function handleEdit(payload) {
   await store.updateProject(route.params.id, payload)
+  toast().success('프로젝트를 저장했습니다.')
 }
 
 async function handleDelete() {
   deleting.value = true
   try {
     await store.deleteProject(route.params.id)
+    toast().success('프로젝트를 삭제했습니다.')
     router.replace({ name: 'projects' })
+  } catch (e) {
+    toast().error(e.normalizedMessage || '삭제에 실패했습니다.')
   } finally {
     deleting.value = false
     showDelete.value = false

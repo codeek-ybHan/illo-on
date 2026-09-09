@@ -13,6 +13,7 @@ import AppIcon from '@/components/common/AppIcon.vue'
 import MeetingForm from '@/components/meeting/MeetingForm.vue'
 import AiBriefing from '@/components/meeting/AiBriefing.vue'
 import { formatDateTime } from '@/utils/date'
+import { toast } from '@/utils/toast'
 
 const route = useRoute()
 const router = useRouter()
@@ -114,12 +115,17 @@ async function runAnalyze() {
 }
 
 async function registerActionPoint(index, payload) {
-  await createTask({
-    projectId: current.value.projectId,
-    meetingId: current.value.meetingId,
-    ...payload,
-  })
-  registeredIndexes.value = [...registeredIndexes.value, index]
+  try {
+    await createTask({
+      projectId: current.value.projectId,
+      meetingId: current.value.meetingId,
+      ...payload,
+    })
+    registeredIndexes.value = [...registeredIndexes.value, index]
+    toast().success('업무로 등록했습니다.')
+  } catch (e) {
+    toast().error(e.normalizedMessage || '업무 등록에 실패했습니다.')
+  }
 }
 
 async function saveContent() {
@@ -150,11 +156,15 @@ async function handleDelete() {
   try {
     const projectId = current.value?.projectId
     await store.deleteMeeting(route.params.id)
+    toast().success('회의를 삭제했습니다.')
     router.replace(
       projectId ? { name: 'project-detail', params: { id: projectId } } : { name: 'meetings' },
     )
+  } catch (e) {
+    toast().error(e.normalizedMessage || '삭제에 실패했습니다.')
   } finally {
     deleting.value = false
+    showDelete.value = false
   }
 }
 </script>

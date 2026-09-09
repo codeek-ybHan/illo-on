@@ -12,6 +12,7 @@ import StatusBadge from '@/components/common/StatusBadge.vue'
 import AppIcon from '@/components/common/AppIcon.vue'
 import TaskForm from '@/components/task/TaskForm.vue'
 import { formatDate, formatDue } from '@/utils/date'
+import { toast } from '@/utils/toast'
 
 const route = useRoute()
 const router = useRouter()
@@ -53,6 +54,7 @@ function advanceStatus() {
 
 async function handleEdit(payload) {
   await store.updateTask(route.params.id, payload)
+  toast().success('저장했습니다.')
 }
 
 async function handleDelete() {
@@ -60,11 +62,15 @@ async function handleDelete() {
   try {
     const projectId = current.value?.projectId
     await store.deleteTask(route.params.id)
+    toast().success('Task를 삭제했습니다.')
     router.replace(
       projectId ? { name: 'project-detail', params: { id: projectId } } : { name: 'mainboard' },
     )
+  } catch (e) {
+    toast().error(e.normalizedMessage || '삭제에 실패했습니다.')
   } finally {
     deleting.value = false
+    showDelete.value = false
   }
 }
 </script>

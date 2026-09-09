@@ -92,9 +92,13 @@ onMounted(async () => {
   }
 })
 
-function handleStatusChange(task, status) {
-  taskStore.changeStatus(task, status)
-  fetchBoard().then((b) => (board.value = b))
+async function handleStatusChange(task, status) {
+  try {
+    await taskStore.changeStatus(task, status)
+    board.value = await fetchBoard()
+  } catch {
+    /* changeStatus 가 토스트 처리 */
+  }
 }
 </script>
 

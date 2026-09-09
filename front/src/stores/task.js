@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import * as api from '@/api/task'
+import { toast } from '@/utils/toast'
 
 /** Task 객체 → PUT 전체 교체 payload */
 export function toUpdatePayload(task, overrides = {}) {
@@ -68,9 +69,14 @@ export const useTaskStore = defineStore('task', () => {
     return updated
   }
 
-  /** 상태만 빠르게 변경 */
+  /** 상태만 빠르게 변경 (인라인 UI라 실패 시 토스트) */
   async function changeStatus(task, status) {
-    return updateTask(task.taskId, toUpdatePayload(task, { status }))
+    try {
+      return await updateTask(task.taskId, toUpdatePayload(task, { status }))
+    } catch (e) {
+      toast().error(e.normalizedMessage || '상태 변경에 실패했습니다.')
+      throw e
+    }
   }
 
   async function deleteTask(taskId) {

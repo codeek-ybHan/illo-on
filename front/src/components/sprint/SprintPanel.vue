@@ -13,6 +13,7 @@ import AppIcon from '@/components/common/AppIcon.vue'
 import SprintForm from './SprintForm.vue'
 import SprintBoard from './SprintBoard.vue'
 import { formatDate } from '@/utils/date'
+import { toast } from '@/utils/toast'
 
 const props = defineProps({
   projectId: { type: [Number, String], required: true },
@@ -66,24 +67,38 @@ async function handleEdit(payload) {
 }
 
 async function confirmDelete() {
-  await sprintStore.deleteSprint(deleting.value.sprintId)
-  if (selectedId.value === deleting.value.sprintId) {
-    selectedId.value = null
-    boardTasks.value = []
+  const id = deleting.value.sprintId
+  try {
+    await sprintStore.deleteSprint(id)
+    if (selectedId.value === id) {
+      selectedId.value = null
+      boardTasks.value = []
+    }
+  } catch (e) {
+    toast().error(e.normalizedMessage || 'Sprint 삭제에 실패했습니다.')
+  } finally {
+    deleting.value = null
   }
-  deleting.value = null
 }
 
 async function changeStatus(task, status) {
-  const updated = await taskStore.updateTask(task.taskId, toUpdatePayload(task, { status }))
-  boardTasks.value = boardTasks.value.map((t) => (t.taskId === updated.taskId ? updated : t))
-  sprintStore.refreshSprint(selectedId.value, props.projectId)
+  try {
+    const updated = await taskStore.updateTask(task.taskId, toUpdatePayload(task, { status }))
+    boardTasks.value = boardTasks.value.map((t) => (t.taskId === updated.taskId ? updated : t))
+    sprintStore.refreshSprint(selectedId.value, props.projectId)
+  } catch (e) {
+    toast().error(e.normalizedMessage || '상태 변경에 실패했습니다.')
+  }
 }
 
 async function unassign(task) {
-  await taskStore.updateTask(task.taskId, toUpdatePayload(task, { sprintId: null }))
-  boardTasks.value = boardTasks.value.filter((t) => t.taskId !== task.taskId)
-  sprintStore.refreshSprint(selectedId.value, props.projectId)
+  try {
+    await taskStore.updateTask(task.taskId, toUpdatePayload(task, { sprintId: null }))
+    boardTasks.value = boardTasks.value.filter((t) => t.taskId !== task.taskId)
+    sprintStore.refreshSprint(selectedId.value, props.projectId)
+  } catch (e) {
+    toast().error(e.normalizedMessage || 'Sprint 해제에 실패했습니다.')
+  }
 }
 
 async function openAssign() {
@@ -98,13 +113,17 @@ async function openAssign() {
 }
 
 async function assignTask(task) {
-  const updated = await taskStore.updateTask(
-    task.taskId,
-    toUpdatePayload(task, { sprintId: selectedId.value }),
-  )
-  boardTasks.value = [updated, ...boardTasks.value]
-  unassignedTasks.value = unassignedTasks.value.filter((t) => t.taskId !== task.taskId)
-  sprintStore.refreshSprint(selectedId.value, props.projectId)
+  try {
+    const updated = await taskStore.updateTask(
+      task.taskId,
+      toUpdatePayload(task, { sprintId: selectedId.value }),
+    )
+    boardTasks.value = [updated, ...boardTasks.value]
+    unassignedTasks.value = unassignedTasks.value.filter((t) => t.taskId !== task.taskId)
+    sprintStore.refreshSprint(selectedId.value, props.projectId)
+  } catch (e) {
+    toast().error(e.normalizedMessage || 'Sprint 배정에 실패했습니다.')
+  }
 }
 </script>
 
