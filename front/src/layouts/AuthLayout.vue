@@ -1,14 +1,11 @@
 <script setup>
-import AppIcon from '@/components/common/AppIcon.vue'
+import BrandLogo from '@/components/common/BrandLogo.vue'
 </script>
 
 <template>
   <div class="auth">
     <div class="auth__card">
-      <div class="auth__brand">
-        <span class="auth__logo"><AppIcon name="logo" :size="20" /></span>
-        <span class="auth__wordmark">일로ON</span>
-      </div>
+      <BrandLogo class="auth__brand" :size="24" tagline />
       <RouterView />
     </div>
     <p class="auth__tagline">회의에서 나온 일을, 메신저에서 결정된 일을, 일로ON.</p>
@@ -36,23 +33,7 @@ import AppIcon from '@/components/common/AppIcon.vue'
   box-shadow: var(--shadow-shell);
 }
 .auth__brand {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
   margin-bottom: var(--sp-5);
-}
-.auth__logo {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: var(--r-sm);
-  background: var(--c-primary);
-  color: var(--c-primary-contrast);
-}
-.auth__wordmark {
-  font-size: var(--fs-lg);
-  font-weight: 700;
 }
 .auth__tagline {
   font-size: var(--fs-sm);

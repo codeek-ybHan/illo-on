@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 
 import DefaultLayout from '@/layouts/DefaultLayout.vue'
 import AuthLayout from '@/layouts/AuthLayout.vue'
+import { getToken } from '@/utils/token'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -62,13 +63,13 @@ const router = createRouter({
           path: 'login',
           name: 'login',
           component: () => import('@/views/auth/LoginView.vue'),
-          meta: { title: '로그인' },
+          meta: { title: '로그인', public: true },
         },
         {
           path: 'signup',
           name: 'signup',
           component: () => import('@/views/auth/SignupView.vue'),
-          meta: { title: '회원가입' },
+          meta: { title: '회원가입', public: true },
         },
       ],
     },
@@ -76,7 +77,21 @@ const router = createRouter({
   ],
 })
 
-// 인증 가드 자리 (이번 범위 밖)
-// router.beforeEach((to) => { ... })
+/**
+ * 인증 가드
+ * - public 라우트(login/signup): 이미 로그인 상태면 메인보드로
+ * - 그 외: 토큰 없으면 로그인으로 (원위치는 redirect 쿼리에 보관)
+ */
+router.beforeEach((to) => {
+  const authed = Boolean(getToken())
+
+  if (to.meta.public) {
+    return authed ? { name: 'mainboard' } : true
+  }
+  if (!authed) {
+    return { name: 'login', query: { redirect: to.fullPath } }
+  }
+  return true
+})
 
 export default router
