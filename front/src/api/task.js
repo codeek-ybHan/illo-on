@@ -1,9 +1,10 @@
 import http from './axios'
 
-/** 프로젝트 Task 목록 (sprintId 지정 시 해당 Sprint 내 Task만) */
-export function fetchTasks(projectId, sprintId) {
+/** 프로젝트 Task 목록. opts: { sprintId, meetingId } 로 필터 */
+export function fetchTasks(projectId, opts = {}) {
   const params = { projectId }
-  if (sprintId != null) params.sprintId = sprintId
+  if (opts.sprintId != null) params.sprintId = opts.sprintId
+  if (opts.meetingId != null) params.meetingId = opts.meetingId
   return http.get('/tasks', { params }).then((res) => res.data)
 }
 

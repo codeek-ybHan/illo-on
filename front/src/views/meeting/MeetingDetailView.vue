@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useMeetingStore } from '@/stores/meeting'
 import { useProjectStore } from '@/stores/project'
-import { createTask } from '@/api/task'
+import { createTask, fetchTasks } from '@/api/task'
 import PagePlaceholder from '@/components/common/PagePlaceholder.vue'
 import BaseCard from '@/components/common/BaseCard.vue'
 import BaseButton from '@/components/common/BaseButton.vue'
@@ -41,6 +41,23 @@ function onAudioPick(e) {
   audioFile.value = e.target.files?.[0] ?? null
 }
 
+/** 이미 업무로 등록된 Action Point 를 제목 매칭으로 복원 (새로고침 후에도 유지) */
+async function syncRegistered() {
+  if (!briefing.value?.actionPoints?.length || !current.value?.projectId) {
+    registeredIndexes.value = []
+    return
+  }
+  try {
+    const tasks = await fetchTasks(current.value.projectId, { meetingId: current.value.meetingId })
+    const titles = new Set(tasks.map((t) => (t.title || '').trim()))
+    registeredIndexes.value = briefing.value.actionPoints
+      .map((ap, i) => (titles.has((ap.title || '').trim()) ? i : -1))
+      .filter((i) => i >= 0)
+  } catch {
+    /* 로컬 상태 유지 */
+  }
+}
+
 watch(
   () => route.params.id,
   async (id) => {
@@ -50,6 +67,7 @@ watch(
       const m = await store.fetchMeeting(id)
       contentDraft.value = m?.content ?? ''
       if (m?.projectId) projectStore.fetchMembers(m.projectId)
+      await syncRegistered()
       // 회의 생성 폼에서 넘어온 녹음본
       const pending = store.takePendingAudio()
       if (pending) {
@@ -85,7 +103,7 @@ async function runAnalyze() {
       await saveContent()
     }
     await store.analyzeMeeting(route.params.id, useAudio ? audioFile.value : null)
-    registeredIndexes.value = []
+    await syncRegistered()
     if (useAudio) {
       contentDraft.value = store.current?.content ?? ''
       inputTab.value = 'text'

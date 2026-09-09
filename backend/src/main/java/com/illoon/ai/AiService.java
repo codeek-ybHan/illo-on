@@ -102,13 +102,20 @@ public class AiService {
                 .toList();
     }
 
-    /** LLM 이 "yyyy-MM-dd" 또는 "yyyy-MM-ddTHH:mm" 을 줄 수 있음. 날짜만이면 18:00(업무 마감)으로. */
+    /**
+     * LLM 이 "yyyy-MM-dd" 또는 "yyyy-MM-ddTHH:mm" 을 줄 수 있음. 날짜만이면 18:00(업무 마감)으로.
+     * 이미 지난 날짜(LLM 이 연도를 잘못 넣은 경우)는 다음 해로 보정.
+     */
     private LocalDateTime parseDue(String s) {
         if (s == null || s.isBlank()) return null;
         String t = s.trim();
         try {
-            if (t.length() > 10) return LocalDateTime.parse(t.length() == 16 ? t : t.substring(0, 16));
-            return LocalDate.parse(t).atTime(18, 0);
+            LocalDateTime dt = (t.length() > 10)
+                    ? LocalDateTime.parse(t.length() == 16 ? t : t.substring(0, 16))
+                    : LocalDate.parse(t).atTime(18, 0);
+            LocalDateTime today = LocalDate.now().atStartOfDay();
+            while (dt.isBefore(today)) dt = dt.plusYears(1);
+            return dt;
         } catch (Exception e) {
             return null;
         }

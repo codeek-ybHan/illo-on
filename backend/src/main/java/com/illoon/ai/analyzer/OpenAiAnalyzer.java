@@ -8,6 +8,8 @@ import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
+
 /**
  * Spring AI + OpenAI. Structured Output(.entity)으로 Briefing JSON을 받는다. (기획서 §8-1, §8-2)
  * app.ai.provider=openai + OPENAI_API_KEY 필요.
@@ -35,7 +37,8 @@ public class OpenAiAnalyzer implements AiAnalyzer {
               - title: 대화 문장 금지. "무엇을 + 동작"의 간결한 명사구.
                 예) "API 명세는 김민지가 9/15까지 작성하기로 했습니다" -> "API 명세서 작성"
               - assignee: 명확히 지목된 경우만 이름. 아니면 null (지어내지 말 것)
-              - dueDate: 명확한 경우만 yyyy-MM-dd. 아니면 null
+              - dueDate: 명확한 경우만 yyyy-MM-dd. 아니면 null.
+                "다음 주 금요일", "9/15" 같은 표현은 아래 '오늘' 기준으로 계산. 연도를 임의로 넣지 말 것.
               - priority: HIGH | MEDIUM | LOW (긴급 시 HIGH, 여유 시 LOW, 기본 MEDIUM)
             """;
 
@@ -49,7 +52,8 @@ public class OpenAiAnalyzer implements AiAnalyzer {
     public Briefing analyze(String meetingText) {
         try {
             return chatClient.prompt()
-                    .user(u -> u.text("다음 회의 내용을 분석해줘:\n\n{content}")
+                    .user(u -> u.text("오늘은 {today} (yyyy-MM-dd) 이다.\n\n다음 회의 내용을 분석해줘:\n\n{content}")
+                            .param("today", LocalDate.now().toString())
                             .param("content", meetingText))
                     .call()
                     .entity(Briefing.class);

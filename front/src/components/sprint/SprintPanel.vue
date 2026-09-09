@@ -50,7 +50,7 @@ async function selectSprint(sprint) {
   selectedId.value = sprint.sprintId
   boardLoading.value = true
   try {
-    boardTasks.value = await apiFetchTasks(props.projectId, sprint.sprintId)
+    boardTasks.value = await apiFetchTasks(props.projectId, { sprintId: sprint.sprintId })
   } finally {
     boardLoading.value = false
   }

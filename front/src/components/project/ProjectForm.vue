@@ -69,8 +69,7 @@ async function onSubmit() {
       startDate: form.startDate || null,
       endDate: form.endDate || null,
     }
-    // 수정 모드에서는 status 도 함께 (PUT 전체 교체)
-    if (props.project) payload.status = form.status
+    payload.status = form.status
     await props.submitFn(payload)
     emit('update:open', false)
   } catch (e) {
@@ -107,7 +106,7 @@ async function onSubmit() {
         />
       </div>
 
-      <BaseSelect v-if="project" v-model="form.status" label="상태" :options="STATUS_OPTIONS" />
+      <BaseSelect v-model="form.status" label="상태" :options="STATUS_OPTIONS" />
     </form>
 
     <template #footer>

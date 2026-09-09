@@ -35,11 +35,16 @@ public class TaskService {
     // ---------- queries ----------
 
     @Transactional(readOnly = true)
-    public List<TaskResponse> listByProject(Long projectId, Long sprintId, Long userId) {
+    public List<TaskResponse> listByProject(Long projectId, Long sprintId, Long meetingId, Long userId) {
         projectService.requireMember(projectId, userId);
-        List<Task> tasks = sprintId == null
-                ? taskRepository.findAllByProjectIdOrderByCreatedAtDesc(projectId)
-                : taskRepository.findAllByProjectIdAndSprintIdOrderByCreatedAtDesc(projectId, sprintId);
+        List<Task> tasks;
+        if (sprintId != null) {
+            tasks = taskRepository.findAllByProjectIdAndSprintIdOrderByCreatedAtDesc(projectId, sprintId);
+        } else if (meetingId != null) {
+            tasks = taskRepository.findAllByProjectIdAndMeetingIdOrderByCreatedAtDesc(projectId, meetingId);
+        } else {
+            tasks = taskRepository.findAllByProjectIdOrderByCreatedAtDesc(projectId);
+        }
         return toResponses(tasks);
     }
 

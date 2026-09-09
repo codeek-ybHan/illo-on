@@ -61,7 +61,7 @@ public class ProjectService {
                 .description(req.description())
                 .startDate(req.startDate())
                 .endDate(req.endDate())
-                .status(ProjectStatus.PLANNED)
+                .status(req.status() != null ? req.status() : ProjectStatus.PLANNED)
                 .build());
         memberRepository.save(ProjectMember.builder()
                 .projectId(project.getId())

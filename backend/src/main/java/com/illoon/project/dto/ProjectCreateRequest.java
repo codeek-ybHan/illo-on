@@ -1,5 +1,6 @@
 package com.illoon.project.dto;
 
+import com.illoon.project.domain.ProjectStatus;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
@@ -12,5 +13,8 @@ public record ProjectCreateRequest(
 
         String description,
         LocalDate startDate,
-        LocalDate endDate
+        LocalDate endDate,
+
+        /** 미지정 시 PLANNED */
+        ProjectStatus status
 ) {}
