@@ -1,117 +1,219 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { storeToRefs } from 'pinia'
+import { useMeetingStore } from '@/stores/meeting'
 import PagePlaceholder from '@/components/common/PagePlaceholder.vue'
 import BaseCard from '@/components/common/BaseCard.vue'
 import BaseButton from '@/components/common/BaseButton.vue'
+import BaseModal from '@/components/common/BaseModal.vue'
 import AppIcon from '@/components/common/AppIcon.vue'
+import MeetingForm from '@/components/meeting/MeetingForm.vue'
+import { formatDateTime } from '@/utils/date'
+
+const route = useRoute()
+const router = useRouter()
+const store = useMeetingStore()
+const { current, error } = storeToRefs(store)
 
 const inputTab = ref('text')
+const contentDraft = ref('')
+const savingContent = ref(false)
+const contentSaved = ref(false)
+const showEdit = ref(false)
+const showDelete = ref(false)
+const deleting = ref(false)
+const audioFile = ref(null)
+
+function onAudioPick(e) {
+  audioFile.value = e.target.files?.[0] ?? null
+}
+
+watch(
+  () => route.params.id,
+  async (id) => {
+    try {
+      const m = await store.fetchMeeting(id)
+      contentDraft.value = m?.content ?? ''
+      // 회의 생성 폼에서 넘어온 녹음본
+      const pending = store.takePendingAudio()
+      if (pending) {
+        audioFile.value = pending
+        inputTab.value = 'audio'
+      }
+    } catch {
+      /* store.error */
+    }
+  },
+  { immediate: true },
+)
+
+async function saveContent() {
+  savingContent.value = true
+  contentSaved.value = false
+  try {
+    await store.updateMeeting(route.params.id, {
+      title: current.value.title,
+      content: contentDraft.value.trim() || null,
+      meetingAt: current.value.meetingAt,
+      attendeeIds: current.value.attendees.map((a) => a.userId),
+    })
+    contentSaved.value = true
+    setTimeout(() => (contentSaved.value = false), 2000)
+  } finally {
+    savingContent.value = false
+  }
+}
+
+async function handleEdit(payload) {
+  await store.updateMeeting(route.params.id, payload)
+  contentDraft.value = current.value?.content ?? ''
+}
+
+async function handleDelete() {
+  deleting.value = true
+  try {
+    const projectId = current.value?.projectId
+    await store.deleteMeeting(route.params.id)
+    router.replace(
+      projectId ? { name: 'project-detail', params: { id: projectId } } : { name: 'meetings' },
+    )
+  } finally {
+    deleting.value = false
+  }
+}
 </script>
 
 <template>
   <PagePlaceholder
-    title="회의 상세"
+    :title="current?.title || '회의 상세'"
     subtitle="회의 내용을 입력하고 AI 분석으로 Action Point를 추출하세요."
   >
-    <!-- 회의 메타 -->
-    <BaseCard>
-      <div class="meta">
-        <span class="skeleton-text skeleton-text--title" />
-        <div class="meta__row">
-          <span class="meta__item"><AppIcon name="calendar" :size="14" /> 일시 미정</span>
-          <span class="meta__item"><AppIcon name="project" :size="14" /> 프로젝트 미연결</span>
-          <span class="meta__item">참석자 —</span>
-        </div>
-      </div>
-    </BaseCard>
+    <template v-if="current" #actions>
+      <BaseButton variant="ghost" size="sm" @click="showEdit = true">수정</BaseButton>
+      <BaseButton variant="ghost" size="sm" @click="showDelete = true">삭제</BaseButton>
+    </template>
 
-    <!-- 회의 내용 입력 -->
-    <BaseCard>
-      <template #header>회의 내용</template>
-      <div class="tabs">
-        <button
-          class="tab"
-          :class="{ 'is-active': inputTab === 'text' }"
-          @click="inputTab = 'text'"
-        >
-          텍스트 입력
-        </button>
-        <button
-          class="tab"
-          :class="{ 'is-active': inputTab === 'audio' }"
-          @click="inputTab = 'audio'"
-        >
-          녹음본 업로드
-        </button>
-      </div>
+    <p v-if="error" class="detail-error">{{ error }}</p>
 
-      <div v-if="inputTab === 'text'" class="input-area">
-        <div class="skeleton input-area__box" />
-        <p class="u-muted">회의록 또는 메신저 대화 내용을 붙여넣는 영역 (미구현).</p>
-      </div>
-      <div v-else class="input-area">
-        <div class="upload-drop">
-          <AppIcon name="paperclip" :size="20" />
-          <span>녹음 파일을 끌어다 놓거나 선택 (미구현)</span>
-        </div>
-      </div>
-
-      <div class="analyze-row">
-        <BaseButton variant="primary">
-          <template #icon><AppIcon name="sparkle" :size="16" /></template>
-          AI 분석하기
-        </BaseButton>
-      </div>
-    </BaseCard>
-
-    <!-- AI 회의 브리핑 -->
-    <BaseCard>
-      <template #header>
-        <span class="briefing-title">
-          <span class="briefing-title__icon"><AppIcon name="sparkle" :size="15" /></span>
-          AI 회의 브리핑
-        </span>
-      </template>
-
-      <div class="briefing">
-        <div class="briefing__block">
-          <h3>한눈에 보기</h3>
-          <div class="skeleton skeleton--summary" />
-        </div>
-
-        <div class="briefing__block">
-          <h3>📌 결정사항</h3>
-          <ul class="decisions">
-            <li v-for="n in 2" :key="n"><span class="skeleton-text" /></li>
-          </ul>
-        </div>
-
-        <div class="briefing__block">
-          <h3>⚡ Action Point</h3>
-          <div class="ap-grid">
-            <div v-for="n in 2" :key="n" class="ap-card">
-              <span class="skeleton-text skeleton-text--title" />
-              <div class="ap-card__meta">
-                <span class="tag">담당자 미지정</span>
-                <span class="tag">기한 미정</span>
-                <span class="tag tag--prio">우선순위 —</span>
-              </div>
-              <div class="ap-card__foot">
-                <BaseButton variant="ghost" size="sm">수정</BaseButton>
-              </div>
-            </div>
+    <template v-else-if="current">
+      <!-- 회의 메타 -->
+      <BaseCard>
+        <div class="meta">
+          <div class="meta__row">
+            <span class="meta__item">
+              <AppIcon name="calendar" :size="14" />
+              {{ current.meetingAt ? formatDateTime(current.meetingAt) : '일시 미정' }}
+            </span>
+            <RouterLink
+              class="meta__item meta__link"
+              :to="{ name: 'project-detail', params: { id: current.projectId } }"
+            >
+              <AppIcon name="project" :size="14" /> {{ current.projectName }}
+            </RouterLink>
+          </div>
+          <div class="attendees">
+            <span v-for="a in current.attendees" :key="a.userId" class="attendee" :title="a.email">
+              {{ a.name }}
+            </span>
+            <span v-if="!current.attendees.length" class="u-muted">참석자 미지정</span>
           </div>
         </div>
-      </div>
+      </BaseCard>
 
-      <div class="register-row">
-        <BaseButton variant="primary">업무로 등록</BaseButton>
-      </div>
-    </BaseCard>
+      <!-- 회의 내용 입력 -->
+      <BaseCard>
+        <template #header>회의 내용</template>
+        <div class="tabs">
+          <button
+            class="tab"
+            :class="{ 'is-active': inputTab === 'text' }"
+            @click="inputTab = 'text'"
+          >
+            텍스트 입력
+          </button>
+          <button
+            class="tab"
+            :class="{ 'is-active': inputTab === 'audio' }"
+            @click="inputTab = 'audio'"
+          >
+            녹음본 업로드
+          </button>
+        </div>
+
+        <div v-if="inputTab === 'text'" class="input-area">
+          <textarea
+            v-model="contentDraft"
+            class="input-area__textarea"
+            rows="8"
+            placeholder="회의 내용을 입력하거나 메신저 대화를 붙여넣으세요."
+          />
+          <div class="input-area__foot">
+            <span v-if="contentSaved" class="input-area__saved">저장됨</span>
+            <BaseButton variant="soft" size="sm" :disabled="savingContent" @click="saveContent">
+              {{ savingContent ? '저장 중…' : '내용 저장' }}
+            </BaseButton>
+          </div>
+        </div>
+        <div v-else class="upload-area">
+          <label class="upload-drop">
+            <input type="file" accept="audio/*" hidden @change="onAudioPick" />
+            <AppIcon name="paperclip" :size="20" />
+            <span v-if="audioFile">{{ audioFile.name }}</span>
+            <span v-else>녹음 파일 선택 (mp3, m4a, wav…)</span>
+          </label>
+          <p class="upload-hint">
+            아래 “AI 분석하기”를 누르면 음성 → 텍스트(STT) 변환 후 요약합니다 (Phase 6).
+          </p>
+        </div>
+      </BaseCard>
+
+      <!-- AI 브리핑 (Phase 6) -->
+      <BaseCard>
+        <template #header>
+          <span class="briefing-title">
+            <span class="briefing-title__icon"><AppIcon name="sparkle" :size="15" /></span>
+            AI 회의 브리핑
+          </span>
+          <BaseButton variant="primary" size="sm" disabled>
+            <template #icon><AppIcon name="sparkle" :size="15" /></template>
+            AI 분석하기
+          </BaseButton>
+        </template>
+        <p class="empty-hint">
+          Phase 6에서 회의 내용을 분석해 요약 · 결정사항 · Action Point를 추출합니다.
+        </p>
+      </BaseCard>
+    </template>
   </PagePlaceholder>
+
+  <MeetingForm
+    v-if="current"
+    v-model:open="showEdit"
+    :meeting="current"
+    :project-id="current.projectId"
+    :submit-fn="handleEdit"
+  />
+
+  <BaseModal v-model:open="showDelete" title="회의 삭제" size="sm">
+    <p>이 회의를 삭제할까요? 회의에서 만든 Task는 유지되고 연결만 끊어집니다.</p>
+    <template #footer>
+      <BaseButton variant="ghost" size="sm" @click="showDelete = false">취소</BaseButton>
+      <BaseButton variant="primary" size="sm" :disabled="deleting" @click="handleDelete">
+        {{ deleting ? '삭제 중…' : '삭제' }}
+      </BaseButton>
+    </template>
+  </BaseModal>
 </template>
 
 <style scoped>
+.detail-error {
+  padding: var(--sp-3);
+  border-radius: var(--r-md);
+  background: var(--c-peach);
+  color: var(--c-danger);
+  font-size: var(--fs-sm);
+}
 .meta {
   display: flex;
   flex-direction: column;
@@ -128,6 +230,20 @@ const inputTab = ref('text')
   gap: 6px;
   font-size: var(--fs-sm);
   color: var(--c-text-2);
+}
+.meta__link:hover {
+  color: var(--c-accent);
+}
+.attendees {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+.attendee {
+  padding: 2px 10px;
+  border-radius: var(--r-full);
+  background: var(--c-surface-alt);
+  font-size: var(--fs-xs);
 }
 .tabs {
   display: flex;
@@ -150,10 +266,35 @@ const inputTab = ref('text')
 .input-area {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-2);
+  gap: var(--sp-3);
 }
-.input-area__box {
-  height: 140px;
+.input-area__textarea {
+  padding: var(--sp-3);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  background: var(--c-surface);
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.6;
+}
+.input-area__textarea:focus {
+  outline: none;
+  border-color: var(--c-primary);
+}
+.input-area__foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--sp-3);
+}
+.input-area__saved {
+  font-size: var(--fs-xs);
+  color: var(--c-success);
+}
+.upload-area {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
 }
 .upload-drop {
   display: flex;
@@ -161,16 +302,22 @@ const inputTab = ref('text')
   align-items: center;
   justify-content: center;
   gap: var(--sp-2);
-  height: 140px;
+  min-height: 120px;
+  padding: var(--sp-4);
   border: 1px dashed var(--c-border-strong);
   border-radius: var(--r-md);
   color: var(--c-text-muted);
   font-size: var(--fs-sm);
+  cursor: pointer;
+  word-break: break-all;
+  text-align: center;
 }
-.analyze-row {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: var(--sp-4);
+.upload-drop:hover {
+  background: var(--c-surface-alt);
+}
+.upload-hint {
+  font-size: var(--fs-xs);
+  color: var(--c-text-muted);
 }
 .briefing-title {
   display: inline-flex;
@@ -185,78 +332,5 @@ const inputTab = ref('text')
   border-radius: var(--r-sm);
   background: var(--c-accent-soft);
   color: var(--c-accent);
-}
-.briefing {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-5);
-}
-.briefing__block h3 {
-  font-size: var(--fs-md);
-  margin-bottom: var(--sp-3);
-}
-.skeleton--summary {
-  height: 56px;
-}
-.decisions {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-2);
-}
-.ap-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--sp-3);
-}
-.ap-card {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-3);
-  padding: var(--sp-4);
-  border: 1px solid var(--c-border);
-  border-radius: var(--r-md);
-  background: var(--c-surface-alt);
-}
-.ap-card__meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-2);
-}
-.tag {
-  padding: 2px 8px;
-  border-radius: var(--r-full);
-  background: var(--c-surface);
-  border: 1px solid var(--c-border);
-  font-size: var(--fs-xs);
-  color: var(--c-text-2);
-}
-.tag--prio {
-  color: var(--c-accent);
-}
-.ap-card__foot {
-  display: flex;
-  justify-content: flex-end;
-}
-.register-row {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: var(--sp-5);
-}
-.skeleton-text {
-  display: block;
-  height: 10px;
-  width: 70%;
-  border-radius: var(--r-full);
-  background: var(--c-border);
-}
-.skeleton-text--title {
-  width: 40%;
-  height: 13px;
-}
-
-@media (max-width: 1080px) {
-  .ap-grid {
-    grid-template-columns: 1fr;
-  }
 }
 </style>

@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useProjectStore } from '@/stores/project'
 import { useTaskStore } from '@/stores/task'
+import { useMeetingStore } from '@/stores/meeting'
 import { createInvite as apiCreateInvite } from '@/api/project'
 import PagePlaceholder from '@/components/common/PagePlaceholder.vue'
 import BaseCard from '@/components/common/BaseCard.vue'
@@ -15,18 +16,23 @@ import ProjectForm from '@/components/project/ProjectForm.vue'
 import TaskList from '@/components/task/TaskList.vue'
 import TaskForm from '@/components/task/TaskForm.vue'
 import SprintPanel from '@/components/sprint/SprintPanel.vue'
+import MeetingCard from '@/components/meeting/MeetingCard.vue'
+import MeetingForm from '@/components/meeting/MeetingForm.vue'
 import { formatDate } from '@/utils/date'
 
 const route = useRoute()
 const router = useRouter()
 const store = useProjectStore()
 const taskStore = useTaskStore()
+const meetingStore = useMeetingStore()
 const { current, members, loading, error } = storeToRefs(store)
 const { tasks, loading: tasksLoading } = storeToRefs(taskStore)
+const { meetings, loading: meetingsLoading } = storeToRefs(meetingStore)
 
 const tabs = ['Overview', 'Sprint', 'Tasks', 'Meetings']
 const activeTab = ref('Overview')
 const showTaskCreate = ref(false)
+const showMeetingCreate = ref(false)
 
 const showEdit = ref(false)
 const showDelete = ref(false)
@@ -54,13 +60,19 @@ watch(
   { immediate: true },
 )
 
-// Tasks 탭 진입 시 로드
+// 탭 진입 시 로드
 watch([activeTab, () => route.params.id], ([tab, id]) => {
-  if (tab === 'Tasks' && id) taskStore.fetchTasks(id)
+  if (!id) return
+  if (tab === 'Tasks') taskStore.fetchTasks(id)
+  if (tab === 'Meetings') meetingStore.fetchMeetings(id)
 })
 
 async function handleTaskCreate(payload) {
   await taskStore.createTask(payload)
+}
+
+async function handleMeetingCreate(payload) {
+  return meetingStore.createMeeting(route.params.id, payload)
 }
 
 function handleStatusChange(task, status) {
@@ -205,9 +217,26 @@ async function copyInvite() {
         :is-admin="isAdmin"
       />
 
-      <!-- Meetings: Phase 5 -->
+      <!-- Meetings -->
+      <div v-else-if="activeTab === 'Meetings'" class="meetings-tab">
+        <div class="meetings-tab__head">
+          <h2 class="meetings-tab__title">회의</h2>
+          <BaseButton variant="primary" size="sm" @click="showMeetingCreate = true">
+            <template #icon><AppIcon name="plus" :size="16" /></template>
+            새 회의
+          </BaseButton>
+        </div>
+        <div v-if="meetingsLoading" class="meetings-tab__list">
+          <div v-for="n in 3" :key="n" class="skeleton" style="height: 60px" />
+        </div>
+        <p v-else-if="!meetings.length" class="empty-hint">아직 회의가 없습니다.</p>
+        <div v-else class="meetings-tab__list">
+          <MeetingCard v-for="m in meetings" :key="m.meetingId" :meeting="m" />
+        </div>
+      </div>
+
       <BaseCard v-else>
-        <p class="empty-hint">"Meetings" — Phase 5에서 연결됩니다.</p>
+        <p class="empty-hint">준비 중입니다.</p>
       </BaseCard>
     </template>
 
@@ -222,6 +251,13 @@ async function copyInvite() {
     :project-id="current.projectId"
     :members="members"
     :submit-fn="handleTaskCreate"
+  />
+
+  <MeetingForm
+    v-if="current"
+    v-model:open="showMeetingCreate"
+    :project-id="current.projectId"
+    :submit-fn="handleMeetingCreate"
   />
 
   <BaseModal v-model:open="showDelete" title="프로젝트 삭제" size="sm">
@@ -274,6 +310,24 @@ async function copyInvite() {
 }
 .tasks-tab__title {
   font-size: var(--fs-lg);
+}
+.meetings-tab {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+.meetings-tab__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.meetings-tab__title {
+  font-size: var(--fs-lg);
+}
+.meetings-tab__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
 }
 .tabs {
   display: flex;

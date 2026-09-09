@@ -128,24 +128,26 @@ DELETE /api/sprints/{sprintId}              ADMIN
 
 ---
 
-## 5. Meeting — 핵심 기능 진입
+## 5. Meeting — 핵심 기능 진입 ✅ (2026-09-09)
 
-- [ ] 회의 목록 / 생성 / 상세 / 수정 / 삭제
-- [ ] 회의 내용 직접 입력 · 메신저 대화 붙여넣기
-- [ ] 회의 참석자 관리
-- [ ] `AudioUploader` — 녹음본 파일 선택 UI (STT 연동은 Phase 6 후순위)
+- [x] 회의 목록 / 생성 / 상세 / 수정 / 삭제
+- [x] 회의 내용 직접 입력 · 메신저 대화 붙여넣기 (내용만 별도 저장 가능)
+- [x] 회의 참석자 관리 (프로젝트 멤버만, 400 검증)
+- [x] 녹음본 업로드 탭 UI (STT는 Phase 6)
+- [x] 회의 ↔ Task 연결 준비 — `MeetingResponse.taskCount`, 회의 삭제 시 Task 유지·`meeting_id` 해제
 
 ```http
-GET    /api/projects/{projectId}/meetings
+GET    /api/projects/{projectId}/meetings   attendeeCount·hasContent·hasSummary·taskCount
 POST   /api/projects/{projectId}/meetings
-GET    /api/meetings/{meetingId}
-PUT    /api/meetings/{meetingId}
+GET    /api/meetings/{meetingId}             attendees·content 포함
+PUT    /api/meetings/{meetingId}             전체 교체 (참석자 재설정 포함)
 DELETE /api/meetings/{meetingId}
 ```
 
-FE: `api/meeting.js` · `stores/meeting.js` · `MeetingForm` · `MeetingListView` 실데이터 · `MeetingDetailView` 내용 입력/저장
+**BE**: `meeting/domain`(`Meeting` `MeetingMember`(복합PK)) · `MeetingRepository`·`MeetingMemberRepository` · `MeetingService`(ProjectService 멤버 가드, 참석자 검증, 삭제 시 Task unlink) · `MeetingController` · `TaskRepository` `countByMeetingId`/`findAllByMeetingId`
+**FE**: `api/meeting.js` · `stores/meeting.js` · `components/meeting/`(`MeetingCard` `MeetingForm`(프로젝트 선택+참석자 체크박스)) · `MeetingListView`(전 프로젝트 회의 집계 + 필터 + 생성) · `MeetingDetailView`(메타·참석자·내용 저장·[텍스트/녹음본] 탭·AI 브리핑 자리·수정/삭제) · ProjectDetail **Meetings 탭**
 
-**완료 기준**: 회의 생성 → 목록 → 상세 → 내용 저장.
+**완료 기준**: 회의 생성 → 목록 → 상세 → 내용 저장 — curl E2E 검증 완료 (create 201 + attendees, 비멤버 참석자 400, list/detail, PUT 참석자 교체, 비멤버 403, 404, Task meeting_id 링크 → 회의 삭제 시 Task 유지·`meetingId` null).
 
 ---
 

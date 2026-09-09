@@ -16,7 +16,11 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
 
     List<Task> findAllBySprintId(Long sprintId);
 
+    List<Task> findAllByMeetingId(Long meetingId);
+
     long countByProjectId(Long projectId);
+
+    long countByMeetingId(Long meetingId);
 
     long countBySprintId(Long sprintId);
 
