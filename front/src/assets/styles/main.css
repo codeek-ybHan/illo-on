@@ -1,0 +1,123 @@
+@import './reset.css';
+
+/* =========================================================
+   일로ON · 디자인 토큰
+   ========================================================= */
+:root {
+  /* ----- 색상: 표면 ----- */
+  --c-page: #e9e8e4; /* 앱 셸 바깥 페이지 배경 */
+  --c-shell: #ffffff; /* 떠 있는 앱 셸 */
+  --c-surface: #ffffff; /* 카드 */
+  --c-surface-alt: #f4f2ef; /* inset / hover / 콘텐츠 배경 */
+  --c-border: #e7e4df;
+  --c-border-strong: #d8d4cd;
+
+  /* ----- 색상: 텍스트 ----- */
+  --c-text: #1b1b1b;
+  --c-text-2: #6b6b6b;
+  --c-text-muted: #9a9a9a;
+
+  /* ----- primary / accent ----- */
+  --c-primary: #1b1b1b;
+  --c-primary-contrast: #ffffff;
+  --c-primary-hover: #333333;
+  --c-accent: #e5822e;
+  --c-accent-soft: #f5e4d3;
+  --c-success: #3e9b5f;
+  --c-danger: #d9534f;
+
+  /* ----- 파스텔 칩 / 배지 톤 ----- */
+  --c-lavender: #ece9fb;
+  --c-lavender-ink: #6c5ce7;
+  --c-peach: #fbebe4;
+  --c-peach-ink: #d9663d;
+  --c-cream: #fbf4e2;
+  --c-cream-ink: #b8912f;
+  --c-mint: #e4f3ec;
+  --c-mint-ink: #2f8f5f;
+
+  /* ----- 상태색 ----- */
+  --c-status-todo: #9a9a9a;
+  --c-status-progress: #e5822e;
+  --c-status-done: #3e9b5f;
+  --c-priority-high: #d9534f;
+  --c-priority-medium: #e5822e;
+  --c-priority-low: #9a9a9a;
+
+  /* ----- 반경 ----- */
+  --r-sm: 8px;
+  --r-md: 14px;
+  --r-lg: 20px;
+  --r-shell: 24px;
+  --r-full: 999px;
+
+  /* ----- 그림자 ----- */
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.05);
+  --shadow-shell: 0 12px 48px rgba(0, 0, 0, 0.08);
+  --shadow-pop: 0 6px 20px rgba(0, 0, 0, 0.12);
+
+  /* ----- 간격 ----- */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-8: 64px;
+
+  /* ----- 타이포 ----- */
+  --font-sans:
+    'Pretendard', system-ui, -apple-system, 'Apple SD Gothic Neo', 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  --fs-xs: 12px;
+  --fs-sm: 13px;
+  --fs-md: 14px;
+  --fs-lg: 16px;
+  --fs-xl: 20px;
+  --fs-2xl: 24px;
+  --fs-display: 28px;
+
+  /* ----- 레이아웃 치수 ----- */
+  --rail-w: 72px;
+  --ai-panel-w: 340px;
+  --header-h: 60px;
+  --shell-gap: 16px;
+  --content-max: 1160px;
+}
+
+/* =========================================================
+   공용 유틸
+   ========================================================= */
+.u-muted {
+  color: var(--c-text-muted);
+}
+.u-secondary {
+  color: var(--c-text-2);
+}
+
+/* 로딩/미구현 영역 스켈레톤 블록 */
+.skeleton {
+  background: var(--c-surface-alt);
+  border: 1px dashed var(--c-border-strong);
+  border-radius: var(--r-md);
+}
+
+.skeleton--line {
+  height: 12px;
+  border-style: solid;
+  border-color: transparent;
+  background: var(--c-border);
+  border-radius: var(--r-full);
+}
+
+/* 빈 상태 안내 */
+.empty-hint {
+  display: grid;
+  place-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-7) var(--sp-4);
+  text-align: center;
+  color: var(--c-text-muted);
+  font-size: var(--fs-sm);
+}
