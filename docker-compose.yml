@@ -2,6 +2,12 @@ services:
   db:
     image: mysql:8.0
     restart: unless-stopped
+    # 1GB RAM 인스턴스 대응 — MySQL 기본 메모리 사용량을 크게 줄인다.
+    command:
+      - --innodb-buffer-pool-size=64M
+      - --innodb-flush-method=O_DIRECT
+      - --performance-schema=OFF
+      - --skip-log-bin
     environment:
       MYSQL_DATABASE: illo_on
       MYSQL_USER: illoon
@@ -23,6 +29,8 @@ services:
         condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: prod
+      # 1GB RAM 대응 — JVM 힙을 컨테이너 메모리의 40%로 제한, 저메모리 친화적 GC.
+      JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=40.0 -XX:+UseSerialGC -Xss512k"
       DB_HOST: db
       DB_PORT: "3306"
       DB_NAME: illo_on

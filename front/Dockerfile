@@ -6,6 +6,8 @@ RUN npm ci
 COPY . .
 # 컨테이너에서는 nginx 프록시(/api)를 통해 백엔드로 감
 ENV VITE_API_BASE_URL=/api
+# 저메모리(1GB) 서버 빌드 대응
+ENV NODE_OPTIONS=--max-old-space-size=512
 RUN npm run build
 
 # ── serve ──
