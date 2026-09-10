@@ -59,18 +59,14 @@ export const useMeetingStore = defineStore('meeting', () => {
     }
   }
 
-  /** AI 분석 실행. audioFile 있으면 STT 경로 */
+  /** AI 분석 실행. audioFile 있으면 STT 경로. 실패는 호출부(토스트)에 위임 — 페이지는 유지 */
   async function analyzeMeeting(meetingId, audioFile) {
     analyzing.value = true
-    error.value = ''
     try {
       briefing.value = await aiApi.analyzeMeeting(meetingId, audioFile)
       // STT로 내용이 바뀌었을 수 있고 hasSummary가 true가 됨
       current.value = await api.fetchMeeting(meetingId)
       return briefing.value
-    } catch (e) {
-      error.value = e.normalizedMessage || 'AI 분석에 실패했습니다.'
-      throw e
     } finally {
       analyzing.value = false
     }

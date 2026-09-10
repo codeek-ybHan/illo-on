@@ -2,8 +2,6 @@ package com.illoon.ai;
 
 import com.illoon.ai.dto.AiChatReply;
 import com.illoon.ai.dto.AiChatRequest;
-import com.illoon.board.BoardService;
-import com.illoon.board.dto.BoardResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -19,8 +17,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 우측 AI 패널의 대화. 사용자의 프로젝트·Sprint·업무·회의 현황을 컨텍스트로 주입한다.
- * provider=openai 일 때만 실제 LLM 호출. 그 외에는 설정 안내를 반환(대화 비활성).
+ * 우측 AI 패널의 대화. 사용자의 프로젝트·Sprint·업무 현황 + 회의 기록(요약·결정사항·원문)을
+ * 컨텍스트로 주입한다. provider=openai 일 때만 실제 LLM 호출.
+ *
+ * <p>컨텍스트는 {@link AiChatContext} 가 짧은 트랜잭션으로 문자열화하고,
+ * 느린 LLM 호출은 여기서 트랜잭션 밖에서 수행한다.
  */
 @Slf4j
 @Service
@@ -29,16 +30,18 @@ public class AiChatService {
 
     private static final String SYSTEM = """
             너는 일로ON(업무관리 + AI 회의록 SaaS)의 어시스턴트다.
-            아래 [사용자 현황]과 대화 맥락을 바탕으로 한국어로 간결하게 답한다.
+            아래 [사용자 현황]과 [회의 기록], 그리고 대화 맥락을 근거로 한국어로 답한다.
+            - "지난 회의에서 뭐라고 했지?" 같은 질문은 [회의 기록]의 요약·결정·할일·내용을 찾아 답한다.
+            - 어느 회의 내용인지 물으면 회의 제목과 날짜를 함께 언급한다.
             - 표 대신 짧은 불릿. 군더더기 없이.
-            - 현황에 없는 내용은 지어내지 말고 모른다고 한다.
+            - [회의 기록]/[사용자 현황]에 없는 내용은 지어내지 말고 "기록에 없다"고 한다.
             - 사용자가 업무·회의 생성을 원하면 방법을 안내하되, 직접 만들지는 못한다고 말한다.
             """;
 
     private static final int MAX_HISTORY_TURNS = 8;
 
     private final ObjectProvider<ChatModel> chatModelProvider;
-    private final BoardService boardService;
+    private final AiChatContext context;
 
     @Value("${app.ai.provider}")
     private String provider;
@@ -46,7 +49,7 @@ public class AiChatService {
     public AiChatReply chat(Long userId, AiChatRequest req) {
         String message = req == null ? null : req.message();
         if (message == null || message.isBlank()) {
-            return new AiChatReply("무엇을 도와드릴까요? 회의·업무·일정에 대해 물어보세요.", provider());
+            return new AiChatReply("무엇을 도와드릴까요? 회의·업무·일정에 대해 물어보세요.", providerLabel());
         }
         if (!"openai".equalsIgnoreCase(provider)) {
             return new AiChatReply(
@@ -60,7 +63,7 @@ public class AiChatService {
         }
 
         try {
-            String context = renderContext(boardService.getBoard(userId));
+            String ctx = context.render(userId); // 짧은 트랜잭션 안에서 문자열화
 
             List<Message> messages = new ArrayList<>();
             List<AiChatRequest.Turn> history = req.history() == null ? List.of() : req.history();
@@ -72,7 +75,7 @@ public class AiChatService {
             messages.add(new UserMessage(message));
 
             String reply = ChatClient.create(model).prompt()
-                    .system(SYSTEM + "\n\n[사용자 현황]\n" + context)
+                    .system(SYSTEM + "\n\n" + ctx)
                     .messages(messages)
                     .call()
                     .content();
@@ -83,44 +86,7 @@ public class AiChatService {
         }
     }
 
-    private String provider() {
+    private String providerLabel() {
         return "openai".equalsIgnoreCase(provider) ? "openai" : "mock";
-    }
-
-    private String renderContext(BoardResponse b) {
-        StringBuilder sb = new StringBuilder();
-
-        sb.append("· 열린 내 업무 ").append(b.openTaskCount()).append("건")
-                .append(" (3일 내 마감 ").append(b.dueSoonCount())
-                .append(", 마감 지남 ").append(b.overdueCount())
-                .append(", 오늘 마감 ").append(b.todayTaskCount()).append(")\n");
-        sb.append("· 예정 회의 ").append(b.upcomingMeetingCount()).append("건\n");
-
-        if (!b.projects().isEmpty()) {
-            sb.append("· 프로젝트:\n");
-            b.projects().forEach(p -> sb.append("   - ").append(p.name())
-                    .append(" (").append(p.status())
-                    .append(", 진행률 ").append(p.progress()).append("%")
-                    .append(", 업무 ").append(p.taskCount()).append(")\n"));
-        }
-        if (!b.activeSprints().isEmpty()) {
-            sb.append("· 활성 Sprint:\n");
-            b.activeSprints().forEach(s -> sb.append("   - ").append(s.projectName())
-                    .append(" / ").append(s.name())
-                    .append(" (마감 ").append(s.endDate())
-                    .append(", ").append(s.doneCount()).append("/").append(s.taskCount())
-                    .append(" 완료)\n"));
-        }
-        if (!b.todayMeetings().isEmpty()) {
-            sb.append("· 오늘 회의:\n");
-            b.todayMeetings().forEach(m -> sb.append("   - ").append(m.title())
-                    .append(m.meetingAt() != null ? " (" + m.meetingAt().toLocalTime() + ")" : "")
-                    .append("\n"));
-        }
-        if (!b.todayTasks().isEmpty()) {
-            sb.append("· 오늘 마감 업무:\n");
-            b.todayTasks().forEach(t -> sb.append("   - ").append(t.title()).append("\n"));
-        }
-        return sb.toString();
     }
 }

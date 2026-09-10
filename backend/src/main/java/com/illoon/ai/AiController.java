@@ -8,7 +8,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-@Tag(name = "AI", description = "회의 AI 분석 · 브리핑 조회")
+@Tag(name = "AI", description = "회의 AI 분석 · 브리핑 · 어시스턴트 대화")
 @RestController
 @RequestMapping("/api/meetings/{meetingId}")
 @RequiredArgsConstructor

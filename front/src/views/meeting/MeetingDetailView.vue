@@ -109,8 +109,8 @@ async function runAnalyze() {
       contentDraft.value = store.current?.content ?? ''
       inputTab.value = 'text'
     }
-  } catch {
-    /* store.error */
+  } catch (e) {
+    toast().error(e.normalizedMessage || 'AI 분석에 실패했습니다.')
   }
 }
 

@@ -38,7 +38,9 @@ public enum ErrorCode {
 
     // AI
     AI_ANALYZE_FAILED(HttpStatus.BAD_GATEWAY, "AI 분석에 실패했습니다."),
-    MEETING_CONTENT_EMPTY(HttpStatus.BAD_REQUEST, "분석할 회의 내용이 없습니다.");
+    MEETING_CONTENT_EMPTY(HttpStatus.BAD_REQUEST, "분석할 회의 내용이 없습니다."),
+    STT_FAILED(HttpStatus.UNPROCESSABLE_ENTITY,
+            "음성 파일을 텍스트로 변환하지 못했습니다. 파일 형식(mp3·m4a·wav 등)을 확인하거나 회의 내용을 직접 입력해 주세요.");
 
     private final HttpStatus status;
     private final String message;
