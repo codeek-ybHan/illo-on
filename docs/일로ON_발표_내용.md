@@ -247,7 +247,7 @@ MEETING 1 ── 1 MEETING_ANALYSIS  (회의당 1건, 재분석 시 덮어씀)
 
 ## 7. API 명세 정의
 
-### 전체 30개 엔드포인트 (JWT Bearer, stateless)
+### 전체 31개 엔드포인트 (JWT Bearer, stateless)
 
 | 도메인 | 수 | 주요 엔드포인트 |
 |---|---:|---|
@@ -260,7 +260,7 @@ MEETING 1 ── 1 MEETING_ANALYSIS  (회의당 1건, 재분석 시 덮어씀)
 | AI | 3 | `POST /api/meetings/{id}/analyze` · `GET /api/meetings/{id}/summary` · `POST /api/ai/chat` |
 | Board | 1 | `GET /api/me/board` |
 
-> 기획서 기준 27개 + 대시보드 집계 2개(`/me/board`, `/me/meetings`, N+1 방지) + AI 어시스턴트 1개(`/ai/chat`) = **30개**.
+> 기획서 코어 + 대시보드 집계 2개(`/me/board`, `/me/meetings`, N+1 방지) + AI 어시스턴트 1개(`/ai/chat`) = **31개** (컨트롤러 `@Mapping` 및 `openapi.yaml` 기준).
 > 상태 변경·Sprint 배정은 별도 API 없이 `PUT /api/tasks/{id}` 전체 교체로 처리.
 
 ### 핵심 비즈니스 흐름
@@ -315,3 +315,235 @@ POST /api/auth/signup → POST /api/auth/login → (JWT 발급)
 
 ### 클로징 메시지
 > **회의록을 작성하는 것에서 끝나는 것이 아니라, 회의와 메신저에서 결정된 업무가 실제 Task가 되어 Sprint에서 실행될 수 있도록 연결하는 업무관리 플랫폼입니다.**
+
+---
+---
+
+# 부록 (Appendix)
+
+> 발표 본편에는 넣지 않지만, 질의응답·심사 시 펼쳐 볼 참고 자료. 슬라이드 뒤쪽에 배치.
+
+## A. 기술 스택 & 선택 이유
+
+| 영역 | 기술 | 선택 이유 |
+|---|---|---|
+| Frontend | Vue 3 (`<script setup>`) · Vite | 빠른 HMR, 컴포지션 API로 상태 로직 분리 |
+| | Vue Router · Pinia | 9개 화면 라우팅 + 전역 상태(auth·project·task·meeting·sprint·ui·ai) |
+| | 순수 CSS 디자인 토큰 | 프레임워크 없이 `main.css` 변수로 톤 통일, 번들 경량 |
+| Backend | Spring Boot 3.4 · Java 21 | 팀 숙련도, JPA·Security·AI 생태계 |
+| | Spring Security + JWT(jjwt) | stateless 인증, MSA 확장 시 세션 서버 불필요 |
+| | Spring Data JPA · H2/MySQL | dev는 무설치(H2 파일), prod는 MySQL |
+| | **Spring AI 1.0** | `ChatClient.entity()` 로 LLM 응답을 DTO(record)에 바로 매핑 — 파싱 코드 제거 |
+| | springdoc-openapi | 코드 → OpenAPI YAML 자동 생성, 계약 검증 |
+| Infra | Docker 멀티스테이지 · nginx | 프론트 정적 서빙 + `/api` 프록시, 백엔드 포트 비공개 |
+
+**핵심 기술 요약**: `STT + Spring AI + Structured Output + REST + JWT`
+
+## B. 시스템 아키텍처
+
+### 현재 (MVP — 모듈형 모놀리식)
+```
+Vue SPA ──(/api, JWT)──> Spring Boot 단일 앱
+   패키지로 도메인 분리: auth · project · task · sprint · meeting · ai · board
+   └─ ai 모듈: AiAnalyzer / SpeechToText 인터페이스 + provider별 구현(mock·openai)
+DB: H2(dev) / MySQL(prod) 단일 스키마
+```
+
+### 목표 (확장 시)
+```
+              Frontend
+                 │
+            API Gateway (단일 진입점 · 인증 위임)
+   ┌─────────────┼─────────────┬─────────────┐
+ Project Svc   Task Svc    Meeting Svc     AI Svc ── LLM / STT
+   │             │             │             │
+ Project DB    Task DB      Meeting DB    (분석 결과)
+        └──────── Kafka 이벤트(회의 분석 완료 → Task 후보) ────────┘
+   + Eureka(Service Discovery, 선택) · Docker/K8s
+```
+> 도메인 경계를 패키지로 먼저 그어두어 서비스 분리 비용을 낮춤.
+
+## C. AI 파이프라인 상세
+
+### C-1. 프롬프트 설계 원칙 (`OpenAiAnalyzer` SYSTEM)
+- 역할 부여: "시니어 PM 어시스턴트", 출력은 한국어·불릿·군더더기 없이
+- 4개 필드 분리 지시: `overview`(한 문장) / `highlights`(3~7 불릿, 배경→쟁점→결론 순) / `decisions`(확정된 것만, 추측 금지) / `actionPoints`
+- Action Point 규칙:
+  - `title` = "무엇을 + 동작" 명사구 (대화 문장 금지). 예: "API 명세는 김민지가 9/15까지…" → **"API 명세서 작성"**
+  - `assignee` = 명확히 지목된 경우만 이름, 아니면 `null` (지어내지 않음)
+  - `dueDate` = 명확한 경우만 `yyyy-MM-dd`. "다음 주 금요일"·"9/15"는 **프롬프트에 주입한 '오늘' 기준**으로 계산, 임의 연도 금지
+  - `priority` = `HIGH | MEDIUM | LOW` (기본 MEDIUM)
+
+### C-2. Structured Output 스키마 (`Briefing` record)
+```json
+{
+  "overview": "신규 서비스 출시 일정 및 개발 업무를 논의함",
+  "highlights": ["10월 1일 출시 목표 확정", "API 우선 개발 합의"],
+  "decisions": ["10월 1일 서비스 출시"],
+  "actionPoints": [
+    { "title": "API 명세서 작성", "assignee": "김민지", "dueDate": "2026-09-15", "priority": "HIGH" }
+  ]
+}
+```
+Spring AI `ChatClient.prompt().call().entity(Briefing.class)` — LLM JSON → record 자동 바인딩.
+
+### C-3. mock(규칙 기반) 추출 — OpenAI 없이 데모
+- 문장 분리 후 접속어 제거(`그리고|또한|따라서…`)
+- **담당자**: `([가-힣]{2,4})(님|씨|대리|과장…)?(가|이|께서)` 정규식 + 한국어 성씨 집합으로 오탐 제거
+- **마감일**: `9/15`·`다음 주 금요일`·`이번 달 말` 등 표현 → 오늘 기준 날짜 계산
+- **우선순위**: "긴급"·"급함" → `HIGH`
+- `.txt` 첨부는 mock STT가 원문 그대로 반환
+
+### C-4. Graceful Degrade (요청은 항상 200)
+| 실패 지점 | 폴백 | HTTP |
+|---|---|---|
+| `OpenAiAnalyzer` | `MockAiAnalyzer` (규칙 기반) | 200 |
+| `OpenAiSpeechToText` (Whisper) | `MockSpeechToText` | 200 |
+| `AiChatService` (어시스턴트) | 안내 문구 | 200 |
+| 회의 내용 없이 analyze | — | 400 `MEETING_CONTENT_EMPTY` |
+| STT 변환 자체 실패(형식 오류) | — | 422 `STT_FAILED` |
+
+견고성 설정: 멀티파트 30MB · HTTP read-timeout 120s · Spring AI 재시도 2회.
+
+### C-5. AI 어시스턴트(우측 패널) 컨텍스트 주입
+`AiChatContext.render(userId)` 가 `[사용자 현황]`(보드 집계) + `[회의 기록]`(요약·결정·원문)을 짧은 트랜잭션에서 문자열화 → SYSTEM 프롬프트에 결합. 최근 8턴 히스토리 유지. "기록에 없으면 지어내지 말 것" 지시.
+
+## D. 인증 / 보안 설계
+
+- **JWT (HS256, jjwt)**: `subject = userId`, claim `email`, 만료 24h(`JWT_EXPIRATION_MS`)
+- `JwtAuthenticationFilter` 가 `Authorization: Bearer` 파싱 → `@AuthenticationPrincipal Long userId` 로 주입
+- **stateless** (`SessionCreationPolicy.STATELESS`), CSRF 비활성, CORS 화이트리스트(`:5173`, `:5174`)
+- 비밀번호: **BCrypt**
+- 공개 경로(`PUBLIC_PATHS`): `/api/auth/signup`, `/api/auth/login`, swagger/api-docs, `/h2-console`
+- 그 외 전 경로 인증 필요 → 무효/만료 토큰은 `401` → FE 토큰 제거 + 로그인 리다이렉트(`redirect` 쿼리 보관)
+- 권한: 프로젝트 멤버십·ADMIN 가드는 `ProjectService` 에서 재사용 (`NOT_PROJECT_MEMBER` / `NOT_PROJECT_ADMIN`)
+
+## E. 전체 에러 코드 (`ErrorCode` enum)
+
+응답 규격: `{ "code": "...", "message": "...", "timestamp": "..." }`
+
+| code | HTTP | 메시지 |
+|---|---|---|
+| `INVALID_INPUT` | 400 | 입력값이 올바르지 않습니다. |
+| `MEETING_CONTENT_EMPTY` | 400 | 분석할 회의 내용이 없습니다. |
+| `UNAUTHORIZED` | 401 | 인증이 필요합니다. |
+| `LOGIN_FAILED` | 401 | 이메일 또는 비밀번호가 올바르지 않습니다. |
+| `INVALID_TOKEN` | 401 | 유효하지 않은 토큰입니다. |
+| `FORBIDDEN` / `NOT_PROJECT_MEMBER` / `NOT_PROJECT_ADMIN` | 403 | 권한 없음 / 프로젝트 멤버 아님 / 관리자 전용 |
+| `*_NOT_FOUND` (PROJECT·TASK·SPRINT·MEETING·INVITE) | 404 | 리소스를 찾을 수 없습니다. |
+| `EMAIL_ALREADY_EXISTS` | 409 | 이미 사용 중인 이메일입니다. |
+| `ALREADY_MEMBER` | 409 | 이미 참여 중인 프로젝트입니다. |
+| `INVITE_EXPIRED` | 410 | 만료된 초대 링크입니다. |
+| `STT_FAILED` | 422 | 음성 파일을 텍스트로 변환하지 못했습니다. (형식 확인 안내) |
+| `AI_ANALYZE_FAILED` | 502 | AI 분석에 실패했습니다. *(폴백으로 사실상 미발생)* |
+| `INTERNAL_ERROR` | 500 | 서버 오류가 발생했습니다. |
+
+## F. API Request / Response 예시
+
+### 로그인
+```http
+POST /api/auth/login
+{ "email": "kim@illoon.com", "password": "password1" }
+→ 200  { "token": "eyJ...", "user": { "userId": 1, "name": "김민지", "email": "kim@illoon.com" } }
+```
+
+### 회의 AI 분석 (텍스트)
+```http
+POST /api/meetings/12/analyze          (본문 없음 — 저장된 회의 내용 분석)
+→ 200  { "summary": "...", "decisions": ["10월 1일 출시"],
+         "actionPoints": [ { "title": "API 명세서 작성", "assignee": "김민지",
+                             "dueDate": "2026-09-15", "priority": "HIGH" } ],
+         "source": "TEXT" }
+```
+
+### 회의 AI 분석 (녹음본)
+```http
+POST /api/meetings/12/analyze          multipart/form-data;  audio=<meeting.m4a>
+→ STT → content 저장 → 분석,  "source": "AUDIO"
+```
+
+### Action Point → Task 등록
+```http
+POST /api/tasks
+{ "projectId": 3, "meetingId": 12, "title": "API 명세서 작성",
+  "assigneeId": 1, "dueDate": "2026-09-15T18:00:00", "priority": "HIGH" }
+→ 201  { "taskId": 45, ... , "status": "TODO" }
+```
+
+### Sprint 배정 (상태 변경도 동일 — 별도 API 없음)
+```http
+PUT /api/tasks/45     { ...전체 필드, "sprintId": 7, "status": "IN_PROGRESS" }
+```
+
+## G. 데이터 모델 — DDL & 마이그레이션
+
+- 전체 DBML: `docs/일로ON.dbml` (dbdiagram.io 붙여넣기)
+- 테이블 11개 + Enum 6종 (§6 참조)
+- **마이그레이션 순서**: `users` → `TEAM` → `PROJECT` → (`PROJECT_MEMBER`, `PROJECT_INVITE`) → `MEETING` → `MEETING_MEMBER` → `SPRINT` → `TASK` → `MEETING_ANALYSIS` (+ 컬렉션 3종)
+- dev(H2) `ddl-auto: update` 자동 / prod(MySQL) `validate` — 스키마 선생성 (compose는 데모용으로 `update` 오버라이드)
+- `task.due_date`, `meeting_analysis_action_point.due_date` = `TIMESTAMP` (마감일**시**)
+
+## H. 화면 ↔ 라우트
+
+| 화면 | 라우트 | 주 액터 |
+|---|---|---|
+| 로그인 / 회원가입 | `/login` · `/signup` | 공통 |
+| 메인보드 | `/` | 팀원·관리자 |
+| 회의 목록 | `/meetings` | 팀원·관리자 |
+| 회의 상세 (+ AI 브리핑·Action Point) | `/meetings/:id` | 관리자 |
+| 프로젝트 목록 | `/projects` | 팀원·관리자 |
+| 프로젝트 상세 (Overview·Sprint·Tasks·Meetings 탭) | `/projects/:id` | 팀원·관리자 |
+| 초대 수락 | `/invite/:token` | 팀원 |
+| Task 상세 | `/tasks/:id` | 팀원·관리자 |
+| Sprint 현황 | `/sprints` | 관리자 |
+| 캘린더 | `/calendar` | 팀원·관리자 |
+| 앱 셸 공통 | 레일(5메뉴) · 헤더(검색 ⌘K·알림·만들기·AI 패널) | — |
+
+## I. 요구사항 ↔ 구현 추적 매트릭스 (발췌)
+
+| REQ | API | 화면 |
+|---|---|---|
+| REQ-01/02 회원가입·로그인 | `POST /api/auth/{signup,login}` | `/signup` `/login` |
+| REQ-03~06 프로젝트 | `GET·POST /api/projects`, `GET·PUT·DELETE /api/projects/{id}` | `/projects` `/projects/:id` |
+| REQ-07/08 초대 | `POST /api/projects/{id}/invites`, `POST /api/invites/{token}/join` | 프로젝트 상세, `/invite/:token` |
+| REQ-09~11 업무 | `/api/tasks` CRUD, `GET /api/me/tasks` | 프로젝트 Tasks 탭, `/tasks/:id`, 메인보드 |
+| REQ-12/13 Sprint | `/api/projects/{id}/sprints`, `/api/sprints/{id}`, `PUT /api/tasks/{id}` | 프로젝트 Sprint 탭, `/sprints` |
+| REQ-14~16 회의 | `/api/projects/{id}/meetings`, `/api/meetings/{id}` | `/meetings`, `/meetings/:id` |
+| REQ-17~19 AI | `POST /api/meetings/{id}/analyze`, `GET /api/meetings/{id}/summary` | 회의 상세 — AI 브리핑 / Action Point 카드 |
+| REQ-20 업무 연계 | `POST /api/tasks` (`meetingId`) | Action Point "업무로 등록" |
+| REQ-21 대시보드 | `GET /api/me/board`, `GET /api/me/meetings` | 메인보드, 캘린더 |
+| REQ-22 STT | `POST /api/meetings/{id}/analyze` (multipart) | 회의 상세 — 녹음본 업로드 탭 |
+
+## J. E2E 검증 결과 (`backend/scripts/e2e.sh`)
+
+`PASS 27 / FAIL 0` — mock·openai 양쪽 통과.
+
+| 시나리오 | 검증 |
+|---|---|
+| A | 회원가입 201 · 중복 409 · 로그인 실패 401 · 로그인 JWT · 프로젝트 생성 201 · 비멤버 조회 403 · 초대 · join 200 / 재참여 409 / 잘못된 토큰 404 |
+| B | 회의 생성 201 · 텍스트 분석 200 · 빈 내용 400 · Action Point → Task(`meetingId`) · Sprint 배정 · 진행률 |
+| C | `/api/me/tasks` 스코프 · 상태 `PUT` 반영 |
+| D | Task → 관련 회의 역이동 · 회의 삭제 시 Task 유지·`meetingId` null |
+| 집계 | `/api/me/board` — openTask·dueSoon·진행률·활성 Sprint·오늘 회의 |
+
+## K. 개발 일정 (3일)
+
+| DAY | 산출물 |
+|---|---|
+| 1 | Target/Actor · Pain Point · MVP · 요구사항 ID · Actor별 기능 · User Scenario · 전체 UI Flow · Wireframe |
+| 2 | Entity·ERD·PK/FK · REST API · Request/Response · OpenAPI YAML · Spring AI/Prompt/Structured Output · STT 파이프라인 · MSA/Gateway/JWT 설계 |
+| 3 | 기획서 리뷰 · 예외/오류 시나리오 · ERD/DBML/YAML 검수 · UI↔API↔ERD↔AI 연결 검증 · 제출 · 5분 발표 준비 |
+
+## L. 용어집
+
+| 용어 | 뜻 |
+|---|---|
+| Action Point | AI가 회의에서 추출한 "실행해야 할 업무" 후보. 검토 전이라 아직 Task 아님 |
+| Task | 사용자가 확정한 실제 업무. `meeting_id` 로 생성 맥락(회의) 연결 |
+| 브리핑 | AI 분석 결과 묶음 (한눈에 보기 + 결정사항 + Action Point) |
+| Sprint | Task를 배정해 기간 단위로 진행 관리하는 Agile 단위 (`PLANNED`/`ACTIVE`/`COMPLETED`) |
+| 메인보드 | 로그인 후 첫 화면. 내 업무·프로젝트·현재 Sprint·오늘 일정 집계 |
+| STT | Speech-to-Text. 회의 녹음본 → 텍스트 (Whisper / mock) |
+| Structured Output | LLM 응답을 자연어가 아닌 정해진 JSON 구조로 받는 것 (`Briefing` record) |
+| Graceful Degrade | OpenAI 장애 시 502 대신 규칙 기반/안내 문구로 낮춰 응답 (요청은 200) |
+| Provider (`mock`/`openai`) | AI 구현 선택 스위치 (`app.ai.provider`) |

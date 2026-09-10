@@ -20,6 +20,9 @@ coverage
 /.env
 # 배포 테스트용으로 레포 안에 clone 한 경우
 /illo-on/
+# tunnel.sh 실행 아티팩트
+/.tunnel.pid
+/.tunnel.log
 
 # Editor directories and files
 .vscode/*

@@ -1,7 +1,5 @@
 // =========================================================
 // 일로ON 데이터 모델 (DBML)
-// 원본: docs/일로ON_ERD.md — Phase 9 구현 반영본
-// 시각화: https://dbdiagram.io 에 그대로 붙여넣기
 //
 // Enum 값 (FE = BE = DB 동일 문자열)
 //   project_status  : PLANNED · ACTIVE · COMPLETED
