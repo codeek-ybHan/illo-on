@@ -79,7 +79,9 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(Arrays.stream(allowedOrigins.split(",")).map(String::trim).toList());
+        // 패턴 허용 (allowCredentials=true 라 setAllowedOrigins 로는 와일드카드 불가).
+        // 배포 시 APP_CORS_ALLOWED_ORIGINS 로 공개 도메인/패턴 주입 — 예: https://*.serveousercontent.com
+        config.setAllowedOriginPatterns(Arrays.stream(allowedOrigins.split(",")).map(String::trim).toList());
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);

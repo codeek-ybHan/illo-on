@@ -1,29 +1,11 @@
 // =========================================================
-// 일로ON 데이터 모델 (DBML)
+// [일로ON] 업무관리 플랫폼 - 데이터 모델 (ERD)
 // 업무관리 + AI 회의록 서비스
-//
 // ---------------------------------------------------------
-// 표기 규칙
-//   - 테이블/컬럼명은 실제 스키마와 동일한 snake_case 소문자.
-//     (JPA @Table(name=...) / @Column(name=...) 기준)
-//   - 상태·구분 컬럼은 문서상 값 목록을 note 로 적지만,
-//     실제 DDL 은 VARCHAR 이다 (JPA @Enumerated(EnumType.STRING)).
-//   - created_at 은 BaseTimeEntity(@CreatedDate)가 공통 관리.
-//     update 시각 컬럼은 두지 않는다(수정은 덮어쓰기).
-//
-// Enum 값 (FE = BE = DB 동일 문자열)
-//   project_status  : PLANNED · ACTIVE · COMPLETED
-//   member_role     : ADMIN · MEMBER          (프로젝트별 역할, 계정 유형 아님)
-//   sprint_status   : PLANNED · ACTIVE · COMPLETED
-//   task_priority   : HIGH · MEDIUM · LOW      (기본 MEDIUM)
-//   task_status     : TODO · IN_PROGRESS · DONE (기본 TODO)
-//   analysis_source : TEXT · AUDIO            (분석 입력이 회의 내용인지 녹음인지)
-//
 // 중심 원칙
-//   PROJECT 가 회의·업무·Sprint 를 묶는 단위.
-//   TASK 는 PROJECT 에 속하고, 생성 맥락 MEETING 과 배정 SPRINT 를
-//   선택적으로(nullable) 참조한다.
-//   회의 AI 분석 결과(MEETING_ANALYSIS)는 회의당 1건, 재분석 시 덮어쓴다.
+//   PROJECT는 회의·업무·Sprint 를 묶는 단위입니다.
+//   TASK 는 PROJECT 에 속하고, 생성 맥락 MEETING 과 배정 SPRINT를 선택적으로(nullable) 참조합니다.
+//   회의 AI 분석 결과(MEETING_ANALYSIS)는 회의당 1건으로, 재분석 시 덮어씁니다.
 // =========================================================
 
 Project illo_on {
