@@ -131,18 +131,20 @@ cd front && npm run lint
 
 ---
 
-## Docker
+## Docker / 배포
 
 ```sh
-# OpenAI 분석을 쓰려면 먼저:  export OPENAI_API_KEY=sk-...   (없으면 mock 로 동작)
-docker compose up --build
+cp .env.example .env      # APP_BASE_URL, JWT_SECRET 등을 채운다
+./deploy.sh               # 빌드 + 기동 + 헬스체크. 이후 갱신도 ./deploy.sh
 ```
 
-- `backend` : 멀티스테이지 빌드(Maven → JRE 21), `prod` 프로파일, `db` 의존
+- `backend` : 멀티스테이지 빌드(Maven → JRE 21), `prod` 프로파일, `db` 의존, 포트 비공개(nginx가 프록시)
 - `db` : MySQL 8, 볼륨 `illoon-db-data`
-- `front` : Vite 빌드 → nginx, `http://localhost:5173`
+- `front` : Vite 빌드 → nginx (`/` SPA + `/api` → backend 프록시), 공개 포트 `5173`
 
-`docker compose down -v` 로 DB 볼륨까지 정리.
+외부 접속 링크는 `.env` 의 `APP_BASE_URL` (초대 링크에도 사용). 방화벽에서 `5173`(또는 `80`) 인바운드 허용.
+`./deploy.sh down` 은 스택만 중지(DB 유지), `docker compose down -v` 는 DB 볼륨까지 삭제.
+직접 실행하려면 `docker compose --env-file .env up -d --build`.
 
 ---
 
@@ -152,6 +154,7 @@ docker compose up --build
 |---|---|
 | `docs/일로ON_openapi.yaml` | OpenAPI 3 스펙 (30개 엔드포인트). `curl http://localhost:8080/v3/api-docs.yaml` 로 재생성 |
 | `docs/일로ON_ERD.md` | ERD + DBML + Enum 통일표 + 마이그레이션 순서 |
+| `docs/일로ON.dbml` | DBML 독립 파일 (dbdiagram.io 붙여넣기 / 제출용) |
 | `docs/일로ON_기획서_최종.md` | 서비스 기획서 |
 | `docs/일로ON_개발순서.md` | Phase별 개발 로드맵 / 완료 기준 |
 | `docs/일로ON_프로젝트_폴더구조.md` | 프론트엔드 폴더 구조 설계 |

@@ -1,41 +1,19 @@
-# 일로ON ERD / 데이터 모델
+// =========================================================
+// 일로ON 데이터 모델 (DBML)
+// 원본: docs/일로ON_ERD.md — Phase 9 구현 반영본
+// 시각화: https://dbdiagram.io 에 그대로 붙여넣기
+//
+// Enum 값 (FE = BE = DB 동일 문자열)
+//   project_status  : PLANNED · ACTIVE · COMPLETED
+//   member_role     : ADMIN · MEMBER
+//   task_priority   : HIGH · MEDIUM · LOW
+//   task_status     : TODO · IN_PROGRESS · DONE
+//   sprint_status   : PLANNED · ACTIVE · COMPLETED
+//   analysis_source : TEXT · AUDIO
+//
+// 중심 원칙: PROJECT가 회의·업무·Sprint를 묶고, TASK가 MEETING·SPRINT를 참조(nullable).
+// =========================================================
 
-> 기획서 §10 기반, **Phase 9 구현 반영본**. DBML은 [dbdiagram.io](https://dbdiagram.io) 에 붙여넣어 시각화.
-> 독립 파일: [`docs/일로ON.dbml`](일로ON.dbml) (아래 코드블록과 동일 내용, 제출/시각화용).
-> 실제 테이블명: `USER` → `users` (예약어 회피), 나머지는 단수형.
-
-## 핵심 구조
-
-```text
-TEAM 1 ── N PROJECT
-PROJECT N ── M USER     → PROJECT_MEMBER (role)
-PROJECT 1 ── N PROJECT_INVITE
-PROJECT 1 ── N MEETING
-MEETING N ── M USER     → MEETING_MEMBER
-PROJECT 1 ── N SPRINT
-PROJECT 1 ── N TASK
-MEETING 1 ── N TASK     (task.meeting_id, nullable — 업무 생성 맥락)
-SPRINT  1 ── N TASK     (task.sprint_id, nullable — Sprint 배정)
-USER    1 ── N TASK     (task.assignee_id, nullable — 담당자 미지정 허용)
-```
-
-**중심 원칙**: PROJECT가 업무·회의·Sprint를 묶고, TASK가 MEETING·SPRINT를 참조한다.
-
-## Enum 값 (전 계층 통일 — FE/BE/DB 동일 문자열)
-
-| Enum | 값 | 사용처 |
-|---|---|---|
-| `project_status` | `PLANNED` · `ACTIVE` · `COMPLETED` | PROJECT.status *(기획서 미명시 → 제안값)* |
-| `member_role` | `ADMIN` · `MEMBER` | PROJECT_MEMBER.role |
-| `task_priority` | `HIGH` · `MEDIUM` · `LOW` | TASK.priority |
-| `task_status` | `TODO` · `IN_PROGRESS` · `DONE` | TASK.status |
-| `sprint_status` | `PLANNED` · `ACTIVE` · `COMPLETED` | SPRINT.status |
-
-> AI가 담당자·기한을 확정 못 하는 Action Point는 **DB에 넣기 전 단계**(회의 브리핑 검토 UI)에서만 "미지정"으로 표시한다. TASK로 등록될 때 `assignee_id` / `due_date` 는 그냥 `NULL` 로 저장.
-
-## DBML
-
-```dbml
 Project illo_on {
   database_type: 'MySQL'
 }
@@ -187,30 +165,3 @@ TableGroup meeting_ai {
   MEETING_ANALYSIS_DECISION
   MEETING_ANALYSIS_ACTION_POINT
 }
-```
-
-## ACTION_POINT — @ElementCollection 로 구현
-
-기획서 §10-10 은 "선택"이었으나 회의 재분석·hasSummary 표시를 위해 `MEETING_ANALYSIS` +
-컬렉션 테이블로 영속화했다. AI 결과(overview/highlights/decisions/actionPoints)를 저장하고,
-사용자가 Action Point를 검토·수정해 `POST /api/tasks` (`meeting_id` 연결)로 실제 Task 생성.
-**AI가 Task를 자동 확정하지 않는다** — 담당자/기한 불확실 시 `null` 저장.
-
-## 마이그레이션 순서
-
-`users` → `TEAM` → `PROJECT` → (`PROJECT_MEMBER`, `PROJECT_INVITE`) → `MEETING` → `MEETING_MEMBER`
-→ `SPRINT` → `TASK` → `MEETING_ANALYSIS` (+ 컬렉션 3종)
-
-> H2(dev) 는 `ddl-auto: update` 자동. MySQL(prod) 은 `ddl-auto: validate` — 스키마를 미리 만들어야 함.
-> `task.due_date` / `meeting_analysis_action_point.due_date` 는 `TIMESTAMP` (마감일시).
-
-## 화면 ↔ 주요 테이블
-
-| 화면 | 읽는 테이블 |
-|---|---|
-| 메인보드 | TASK(assignee=me), PROJECT_MEMBER+PROJECT, SPRINT(status=ACTIVE), MEETING(오늘) |
-| 프로젝트 상세 | PROJECT, PROJECT_MEMBER, SPRINT, TASK, MEETING |
-| 회의 상세 | MEETING, MEETING_MEMBER, (analyze 결과), TASK(meeting_id) |
-| Task 상세 | TASK, MEETING(관련), USER(담당자) |
-| Sprint | SPRINT, TASK(sprint_id) |
-| 캘린더 | MEETING(meeting_at), TASK(due_date) |

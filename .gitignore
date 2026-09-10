@@ -18,6 +18,8 @@ coverage
 .env.*.local
 # 배포용 시크릿 (docker compose) — 루트 .env
 /.env
+# 배포 테스트용으로 레포 안에 clone 한 경우
+/illo-on/
 
 # Editor directories and files
 .vscode/*
