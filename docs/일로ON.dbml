@@ -1,165 +1,242 @@
 // =========================================================
 // 일로ON 데이터 모델 (DBML)
+// 업무관리 + AI 회의록 서비스
+//
+// ---------------------------------------------------------
+// 표기 규칙
+//   - 테이블/컬럼명은 실제 스키마와 동일한 snake_case 소문자.
+//     (JPA @Table(name=...) / @Column(name=...) 기준)
+//   - 상태·구분 컬럼은 문서상 값 목록을 note 로 적지만,
+//     실제 DDL 은 VARCHAR 이다 (JPA @Enumerated(EnumType.STRING)).
+//   - created_at 은 BaseTimeEntity(@CreatedDate)가 공통 관리.
+//     update 시각 컬럼은 두지 않는다(수정은 덮어쓰기).
 //
 // Enum 값 (FE = BE = DB 동일 문자열)
 //   project_status  : PLANNED · ACTIVE · COMPLETED
-//   member_role     : ADMIN · MEMBER
-//   task_priority   : HIGH · MEDIUM · LOW
-//   task_status     : TODO · IN_PROGRESS · DONE
+//   member_role     : ADMIN · MEMBER          (프로젝트별 역할, 계정 유형 아님)
 //   sprint_status   : PLANNED · ACTIVE · COMPLETED
-//   analysis_source : TEXT · AUDIO
+//   task_priority   : HIGH · MEDIUM · LOW      (기본 MEDIUM)
+//   task_status     : TODO · IN_PROGRESS · DONE (기본 TODO)
+//   analysis_source : TEXT · AUDIO            (분석 입력이 회의 내용인지 녹음인지)
 //
-// 중심 원칙: PROJECT가 회의·업무·Sprint를 묶고, TASK가 MEETING·SPRINT를 참조(nullable).
+// 중심 원칙
+//   PROJECT 가 회의·업무·Sprint 를 묶는 단위.
+//   TASK 는 PROJECT 에 속하고, 생성 맥락 MEETING 과 배정 SPRINT 를
+//   선택적으로(nullable) 참조한다.
+//   회의 AI 분석 결과(MEETING_ANALYSIS)는 회의당 1건, 재분석 시 덮어쓴다.
 // =========================================================
 
 Project illo_on {
   database_type: 'MySQL'
+  Note: '''
+    일로ON — 팀 업무관리 + 회의 녹음/내용 AI 분석(브리핑·결정사항·Action Point) 서비스.
+    개발 프로파일은 H2 파일 DB(MODE=MySQL), 운영은 MySQL.
+  '''
 }
+
+// =========================================================
+// 핵심 개체 (계정 · 팀 · 프로젝트)
+// =========================================================
 
 Table users {
   user_id bigint [pk, increment]
-  name varchar(50) [not null]
+  name varchar(50) [not null, note: '표시 이름']
   email varchar(255) [not null, unique, note: '로그인 ID']
   password varchar(255) [not null, note: 'BCrypt 해시']
   created_at timestamp [not null, default: `now()`]
+
+  Note: "회원. 계정 유형 구분은 없고, 권한은 프로젝트별 project_member.role 로만 정해진다."
 }
 
-Table TEAM {
+Table team {
   team_id bigint [pk, increment]
-  name varchar(100) [not null]
+  name varchar(100) [not null, note: '프로젝트 생성 시 프로젝트명으로 자동 생성']
   created_at timestamp [not null, default: `now()`]
+
+  Note: '''
+    MVP 에서는 프로젝트 생성 시 자동 생성되는 컨테이너로만 사용(팀 관리 UI 없음).
+    스키마는 향후 "팀당 다중 프로젝트" 확장을 위해 유지.
+  '''
 }
 
-Table PROJECT {
+Table project {
   project_id bigint [pk, increment]
-  team_id bigint [not null, ref: > TEAM.team_id]
+  team_id bigint [not null, ref: > team.team_id, note: '소속 팀 (현재는 1:1 로 자동 생성)']
   name varchar(100) [not null]
-  description text
-  start_date date
-  end_date date
-  status varchar(20) [not null, default: 'PLANNED', note: 'project_status']
+  description text [null]
+  start_date date [null]
+  end_date date [null]
+  status varchar(20) [not null, default: 'PLANNED', note: 'project_status: PLANNED | ACTIVE | COMPLETED']
   created_at timestamp [not null, default: `now()`]
+
+  Note: '업무·회의·Sprint 를 묶는 단위. 생성자는 ADMIN 멤버로 자동 등록된다.'
 }
 
-Table PROJECT_MEMBER {
-  project_id bigint [not null, ref: > PROJECT.project_id]
+Table project_member {
+  project_id bigint [not null, ref: > project.project_id]
   user_id bigint [not null, ref: > users.user_id]
-  role varchar(10) [not null, default: 'MEMBER', note: 'member_role']
+  role varchar(10) [not null, default: 'MEMBER', note: 'member_role: ADMIN | MEMBER']
 
   indexes {
     (project_id, user_id) [pk]
   }
+
+  Note: '''
+    프로젝트 참여자 + 역할. 복합 PK (project_id, user_id).
+    ADMIN 만 프로젝트/Sprint 수정·삭제, 초대 링크 생성 가능.
+  '''
 }
 
-Table PROJECT_INVITE {
+Table project_invite {
   invite_id bigint [pk, increment]
-  project_id bigint [not null, ref: > PROJECT.project_id]
-  token varchar(64) [not null, unique, note: '초대 링크 토큰']
-  created_by bigint [not null, ref: > users.user_id]
-  expires_at timestamp [not null]
+  project_id bigint [not null, ref: > project.project_id]
+  token varchar(64) [not null, unique, note: '초대 링크 토큰 (UUID hex)']
+  created_by bigint [not null, ref: > users.user_id, note: '링크를 만든 ADMIN']
+  expires_at timestamp [not null, note: '생성 + 7일']
   created_at timestamp [not null, default: `now()`]
+
+  Note: '초대 링크. 만료 전 & 미참여 사용자가 POST /api/invites/{token}/join 으로 MEMBER 참여.'
 }
 
-Table MEETING {
+// =========================================================
+// 회의
+// =========================================================
+
+Table meeting {
   meeting_id bigint [pk, increment]
-  project_id bigint [not null, ref: > PROJECT.project_id]
+  project_id bigint [not null, ref: > project.project_id]
   title varchar(200) [not null]
-  content text [note: '회의 내용 / 메신저 대화 / STT 결과']
-  meeting_at timestamp
+  content text [null, note: '회의 내용 / 메신저 대화 붙여넣기 / STT 변환 결과']
+  meeting_at timestamp [null, note: '회의 일시 (캘린더·메인보드 집계 기준)']
   created_by bigint [not null, ref: > users.user_id]
   created_at timestamp [not null, default: `now()`]
+
+  Note: '''
+    회의 기록. AUDIO 분석 시 STT 결과가 content 에 덮어써진다.
+    삭제해도 이 회의에서 만들어진 task 는 남기고 task.meeting_id 만 NULL 로 끊는다.
+  '''
 }
 
-Table MEETING_MEMBER {
-  meeting_id bigint [not null, ref: > MEETING.meeting_id]
+Table meeting_member {
+  meeting_id bigint [not null, ref: > meeting.meeting_id]
   user_id bigint [not null, ref: > users.user_id]
 
   indexes {
     (meeting_id, user_id) [pk]
   }
+
+  Note: '회의 참석자. 참석자는 프로젝트 멤버여야 한다. 복합 PK (meeting_id, user_id).'
 }
 
-Table SPRINT {
+// =========================================================
+// Sprint · Task
+// =========================================================
+
+Table sprint {
   sprint_id bigint [pk, increment]
-  project_id bigint [not null, ref: > PROJECT.project_id]
+  project_id bigint [not null, ref: > project.project_id]
   name varchar(100) [not null]
-  start_date date
-  end_date date
-  status varchar(20) [not null, default: 'PLANNED', note: 'sprint_status']
+  start_date date [null]
+  end_date date [null]
+  status varchar(20) [not null, default: 'PLANNED', note: 'sprint_status: PLANNED | ACTIVE | COMPLETED']
   created_at timestamp [not null, default: `now()`]
+
+  Note: '''
+    프로젝트별 Sprint. 삭제 시 배정된 task 는 지우지 않고 task.sprint_id 만 NULL 로 해제.
+    진행률(progress)·완료 수는 task 를 집계해 응답에서 계산(저장 안 함).
+  '''
 }
 
-Table TASK {
+Table task {
   task_id bigint [pk, increment]
-  project_id bigint [not null, ref: > PROJECT.project_id]
-  meeting_id bigint [ref: > MEETING.meeting_id, note: 'nullable — 생성 맥락 회의']
-  sprint_id bigint [ref: > SPRINT.sprint_id, note: 'nullable — Sprint 배정']
-  assignee_id bigint [ref: > users.user_id, note: 'nullable — 담당자 미지정 허용']
+  project_id bigint [not null, ref: > project.project_id]
+  meeting_id bigint [null, ref: > meeting.meeting_id, note: 'nullable — 생성 맥락 회의']
+  sprint_id bigint [null, ref: > sprint.sprint_id, note: 'nullable — Sprint 배정 (별도 API 없이 PUT 으로)']
+  assignee_id bigint [null, ref: > users.user_id, note: 'nullable — 담당자 미지정 허용. 지정 시 프로젝트 멤버여야 함']
   title varchar(200) [not null]
-  description text
-  due_date timestamp [note: '마감일시 (LocalDateTime)']
-  priority varchar(10) [not null, default: 'MEDIUM', note: 'task_priority']
-  status varchar(15) [not null, default: 'TODO', note: 'task_status']
+  description text [null]
+  due_date timestamp [null, note: '마감 일시 (LocalDateTime)']
+  priority varchar(10) [not null, default: 'MEDIUM', note: 'task_priority: HIGH | MEDIUM | LOW']
+  status varchar(15) [not null, default: 'TODO', note: 'task_status: TODO | IN_PROGRESS | DONE']
   created_at timestamp [not null, default: `now()`]
+
+  Note: '''
+    업무. 상태 변경도 별도 API 없이 PUT /api/tasks/{id} 전체 교체로 처리.
+    "내 업무" 는 assignee_id = 로그인 사용자 기준.
+  '''
 }
 
-// ── AI 분석 결과 (회의당 1건, 재분석 시 덮어씀) ──
-Table MEETING_ANALYSIS {
+// =========================================================
+// 회의 AI 분석 결과
+//   회의당 1건 (meeting_id UNIQUE). 재분석하면 같은 행을 덮어쓴다.
+//   highlights / decisions / action_point 는 @ElementCollection + @OrderColumn(seq)
+//   으로 매핑된 자식 테이블 — 부모 삭제/재분석 시 전체 교체.
+// =========================================================
+
+Table meeting_analysis {
   analysis_id bigint [pk, increment]
-  meeting_id bigint [not null, unique, ref: > MEETING.meeting_id]
-  overview text [note: '한 줄 요약']
-  source varchar(10) [not null, note: 'TEXT | AUDIO']
-  created_at timestamp [not null, default: `now()`]
+  meeting_id bigint [not null, unique, ref: > meeting.meeting_id]
+  overview text [null, note: '한 줄 요약 ("한눈에 보기"). 없으면 빈 문자열']
+  source varchar(10) [not null, note: 'analysis_source: TEXT | AUDIO']
+  created_at timestamp [not null, default: `now()`, note: 'API 응답의 analyzedAt (재분석해도 최초 생성 시각 유지)']
+
+  Note: '회의 AI 브리핑 결과 본문. 상세 항목은 아래 3개 자식 테이블.'
 }
 
-Table MEETING_ANALYSIS_HIGHLIGHT {
-  analysis_id bigint [not null, ref: > MEETING_ANALYSIS.analysis_id]
-  seq int [not null]
-  highlight varchar(500)
+Table meeting_analysis_highlight {
+  analysis_id bigint [not null, ref: > meeting_analysis.analysis_id]
+  seq int [not null, note: '@OrderColumn — 표시 순서 (0-based)']
+  highlight varchar(500) [null, note: '회의 흐름·핵심 논의·결론 불릿']
 
   indexes {
     (analysis_id, seq) [pk]
   }
 }
 
-Table MEETING_ANALYSIS_DECISION {
-  analysis_id bigint [not null, ref: > MEETING_ANALYSIS.analysis_id]
-  seq int [not null]
-  decision varchar(500)
+Table meeting_analysis_decision {
+  analysis_id bigint [not null, ref: > meeting_analysis.analysis_id]
+  seq int [not null, note: '@OrderColumn — 표시 순서 (0-based)']
+  decision varchar(500) [null, note: '확정된 결정사항']
 
   indexes {
     (analysis_id, seq) [pk]
   }
 }
 
-Table MEETING_ANALYSIS_ACTION_POINT {
-  analysis_id bigint [not null, ref: > MEETING_ANALYSIS.analysis_id]
-  seq int [not null]
-  title varchar(300)
-  assignee_hint varchar(50) [note: '담당자 후보 이름 (매칭은 FE)']
-  due_date timestamp [note: 'nullable']
-  priority varchar(10) [note: 'task_priority, 기본 MEDIUM']
+Table meeting_analysis_action_point {
+  analysis_id bigint [not null, ref: > meeting_analysis.analysis_id]
+  seq int [not null, note: '@OrderColumn — 표시 순서 (0-based)']
+  title varchar(300) [null, note: '"무엇을 + 동작" 형태의 간결한 업무명']
+  assignee_hint varchar(50) [null, note: '담당자 후보 이름 (자유 텍스트). 실제 task 담당자 매칭은 FE 에서']
+  due_date timestamp [null, note: 'nullable — 판단 불가 시 비움']
+  priority varchar(10) [null, note: 'task_priority. 비어 있으면 앱에서 MEDIUM 취급']
 
   indexes {
     (analysis_id, seq) [pk]
   }
+
+  Note: 'AI 가 추출한 Action Point 후보(검토 전). 사용자가 확인 후 task 로 등록.'
 }
+
+// =========================================================
+// 다이어그램 그룹
+// =========================================================
 
 TableGroup core {
   users
-  TEAM
-  PROJECT
-  PROJECT_MEMBER
-  PROJECT_INVITE
-  SPRINT
-  TASK
+  team
+  project
+  project_member
+  project_invite
+  sprint
+  task
 }
 
 TableGroup meeting_ai {
-  MEETING
-  MEETING_MEMBER
-  MEETING_ANALYSIS
-  MEETING_ANALYSIS_HIGHLIGHT
-  MEETING_ANALYSIS_DECISION
-  MEETING_ANALYSIS_ACTION_POINT
+  meeting
+  meeting_member
+  meeting_analysis
+  meeting_analysis_highlight
+  meeting_analysis_decision
+  meeting_analysis_action_point
 }

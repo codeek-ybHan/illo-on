@@ -8,14 +8,12 @@
 #    ./tunnel.sh          # 터널 열고 공개 URL 을 .env(APP_BASE_URL)에 반영 + backend 재기동
 #    ./tunnel.sh stop     # 종료
 #
-#  ── 고정 주소(권장, 1회만) ────────────────────────────────
-#    ssh-keygen -t ed25519 -f ~/.ssh/serveo -N ""      (이미 있으면 생략)
-#    ./tunnel.sh                                        (실행하면 등록 링크를 띄워줌)
-#    → 링크 열어 GitHub 로그인 → 키 등록 → 다시 ./tunnel.sh
-#    이후 항상  https://illo-on.serveo.net  로 고정.
-#
-#  ── 등록 전 / serveo 실패 시 ──────────────────────────────
-#    localhost.run 무료 터널로 폴백. URL 이 매번 바뀌므로 재실행 때 새 링크 공유.
+#  ── 주소 종류 ─────────────────────────────────────────────
+#    serveo (~/.ssh/serveo 키 사용):
+#      https://illo-on.serveousercontent.com  — 고정. 단 첫 방문 시 serveo 경고 1회.
+#      깔끔한 *.serveo.net + 경고 제거는 serveo Pro(유료).
+#    serveo 실패 시 → localhost.run 폴백:
+#      https://xxxx.lhr.life  — 경고 없음. 단 재접속 때 URL 이 바뀔 수 있음.
 #
 #  주의: 이 맥이 켜져 있고 안 자야 함.  권장:  caffeinate -s ./tunnel.sh
 # ─────────────────────────────────────────────────────────────
@@ -55,7 +53,7 @@ if [ -f "$KEY" ]; then
   echo $! > "$PIDFILE"
   for _ in $(seq 1 12); do
     sleep 2
-    URL=$(grep -oaE 'https://[a-z0-9.-]+\.serveo\.net' "$LOGFILE" | head -1 || true)
+    URL=$(grep -oaE 'https://[a-z0-9.-]+\.(serveo\.net|serveousercontent\.com)' "$LOGFILE" | head -1 || true)
     [ -n "$URL" ] && break
     if grep -qa "console.serveo.net/ssh/keys?add=" "$LOGFILE"; then
       echo
@@ -95,8 +93,9 @@ echo
 echo "  ┌──────────────────────────────────────────────"
 echo "  │  공개 링크 :  ${URL}"
 case "$URL" in
-  *serveo.net) echo "  │  (고정 주소 · 이 맥/터널/docker 가 켜진 동안)" ;;
-  *)           echo "  │  (임시 주소 · 재실행하면 바뀔 수 있음)" ;;
+  *.serveo.net)            echo "  │  (고정 주소 · 경고 페이지 없음)" ;;
+  *.serveousercontent.com) echo "  │  (고정 주소 · 첫 방문 시 serveo 경고 페이지 → 계속 클릭)" ;;
+  *)                       echo "  │  (임시 주소 · 재실행하면 바뀔 수 있음)" ;;
 esac
 echo "  └──────────────────────────────────────────────"
 echo
