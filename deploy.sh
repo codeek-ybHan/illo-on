@@ -72,9 +72,9 @@ fi
 info "docker compose up -d --build (최초 빌드는 3~5분)"
 docker compose up -d --build --remove-orphans
 
-# ── 3. 헬스 체크 ──
+# ── 3. 헬스 체크 ── (front 는 루프백 8088 에만 매핑돼 있음. 외부는 caddy:443)
 FRONT_PORT="$(docker compose port front 80 2>/dev/null | sed 's/.*://' || true)"
-FRONT_PORT="${FRONT_PORT:-5173}"
+FRONT_PORT="${FRONT_PORT:-8088}"
 BASE="http://127.0.0.1:${FRONT_PORT}"
 
 info "헬스 체크 ($BASE)"
@@ -90,9 +90,9 @@ done
 echo
 if [ "$ok" = 1 ]; then
   echo "${GRN}✓ 배포 완료${NC}"
-  echo "  서버 내부 확인 : $BASE"
+  echo "  서버 내부 확인 : $BASE  (front 직접)"
   echo "  외부 접속 링크 : ${APP_BASE_URL}"
-  echo "  ${DIM}(방화벽/보안그룹에서 ${FRONT_PORT} 포트 인바운드 허용 필요)${NC}"
+  echo "  ${DIM}(방화벽/보안그룹에서 80·443 인바운드 허용 필요. TLS 발급 상태: docker compose logs --tail=50 caddy)${NC}"
 else
   echo "${RED}✗ 헬스 체크 실패${NC} (front=$front, api=$api)"
   echo "  로그 확인: docker compose logs --tail=100 backend"
