@@ -8,7 +8,7 @@ const LABELS = {
   ACTIVE: '진행 중',
   COMPLETED: '완료',
   // task status
-  TODO: '할 일',
+  TODO: '진행 전',
   IN_PROGRESS: '진행 중',
   DONE: '완료',
   // priority

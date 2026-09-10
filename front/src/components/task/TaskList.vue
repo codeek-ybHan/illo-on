@@ -11,7 +11,7 @@ defineEmits(['change-status'])
 
 const FILTERS = [
   { label: '전체', value: 'ALL' },
-  { label: '할 일', value: 'TODO' },
+  { label: '진행 전', value: 'TODO' },
   { label: '진행 중', value: 'IN_PROGRESS' },
   { label: '완료', value: 'DONE' },
 ]

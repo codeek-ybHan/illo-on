@@ -6,6 +6,7 @@ import BaseSelect from '@/components/common/BaseSelect.vue'
 import BaseButton from '@/components/common/BaseButton.vue'
 import BaseDatePicker from '@/components/common/BaseDatePicker.vue'
 import { fetchMembers } from '@/api/project'
+import { fetchSprints } from '@/api/sprint'
 import { required, maxLength, firstError } from '@/utils/validation'
 
 const props = defineProps({
@@ -35,20 +36,36 @@ const resolvedMembers = computed(() =>
   props.members.length ? props.members : fetchedMembers.value,
 )
 
+const sprints = ref([])
+const sprintOptions = computed(() => [
+  { label: '없음', value: '' },
+  ...sprints.value.map((s) => ({ label: s.name, value: String(s.sprintId) })),
+])
+
 watch(
   [() => props.open, effectiveProjectId],
   async ([isOpen, pid]) => {
-    if (!isOpen || fixedProject.value || !pid) {
+    if (!isOpen || !pid) {
       fetchedMembers.value = []
+      sprints.value = []
       return
     }
-    membersLoading.value = true
+    // 담당자: 부모가 members 를 넘겼으면(고정 프로젝트) 그걸 쓰고, 아니면 직접 조회
+    if (!fixedProject.value) {
+      membersLoading.value = true
+      try {
+        fetchedMembers.value = await fetchMembers(pid)
+      } catch {
+        fetchedMembers.value = []
+      } finally {
+        membersLoading.value = false
+      }
+    }
+    // Sprint 목록은 항상 직접 조회
     try {
-      fetchedMembers.value = await fetchMembers(pid)
+      sprints.value = await fetchSprints(pid)
     } catch {
-      fetchedMembers.value = []
-    } finally {
-      membersLoading.value = false
+      sprints.value = []
     }
   },
   { immediate: true },
@@ -60,7 +77,7 @@ const PRIORITY_OPTIONS = [
   { label: '낮음', value: 'LOW' },
 ]
 const STATUS_OPTIONS = [
-  { label: '할 일', value: 'TODO' },
+  { label: '진행 전', value: 'TODO' },
   { label: '진행 중', value: 'IN_PROGRESS' },
   { label: '완료', value: 'DONE' },
 ]
@@ -73,6 +90,7 @@ const form = reactive({
   title: '',
   description: '',
   assigneeId: '',
+  sprintId: '',
   dueDate: '',
   priority: 'MEDIUM',
   status: 'TODO',
@@ -94,6 +112,7 @@ watch(
       title: t?.title ?? '',
       description: t?.description ?? '',
       assigneeId: t?.assigneeId != null ? String(t.assigneeId) : '',
+      sprintId: t?.sprintId != null ? String(t.sprintId) : '',
       dueDate: t?.dueDate ?? '',
       priority: t?.priority ?? 'MEDIUM',
       status: t?.status ?? 'TODO',
@@ -117,6 +136,7 @@ async function onSubmit() {
       title: form.title.trim(),
       description: form.description.trim() || null,
       assigneeId: form.assigneeId ? Number(form.assigneeId) : null,
+      sprintId: form.sprintId ? Number(form.sprintId) : null,
       dueDate: form.dueDate || null,
       priority: form.priority,
     }
@@ -124,7 +144,6 @@ async function onSubmit() {
       ? {
           ...base,
           status: form.status,
-          sprintId: props.task.sprintId ?? null,
           meetingId: props.task.meetingId ?? null,
         }
       : { ...base, projectId: Number(effectiveProjectId.value) }
@@ -183,8 +202,20 @@ async function onSubmit() {
 
       <div class="tform__row">
         <BaseSelect v-model="form.priority" label="우선순위" :options="PRIORITY_OPTIONS" />
-        <BaseSelect v-if="task" v-model="form.status" label="상태" :options="STATUS_OPTIONS" />
+        <BaseSelect
+          v-model="form.sprintId"
+          label="Sprint"
+          :options="sprintOptions"
+          placeholder="없음"
+        />
       </div>
+
+      <BaseSelect
+        v-if="task"
+        v-model="form.status"
+        label="상태"
+        :options="STATUS_OPTIONS"
+      />
     </form>
 
     <template #footer>

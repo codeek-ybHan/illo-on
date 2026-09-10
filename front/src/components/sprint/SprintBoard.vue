@@ -10,7 +10,7 @@ const props = defineProps({
 defineEmits(['change-status', 'unassign'])
 
 const COLUMNS = [
-  { key: 'TODO', label: '할 일' },
+  { key: 'TODO', label: '진행 전' },
   { key: 'IN_PROGRESS', label: '진행 중' },
   { key: 'DONE', label: '완료' },
 ]
@@ -43,7 +43,7 @@ const grouped = computed(() =>
               :value="t.status"
               @change="$emit('change-status', t, $event.target.value)"
             >
-              <option value="TODO">할 일</option>
+              <option value="TODO">진행 전</option>
               <option value="IN_PROGRESS">진행 중</option>
               <option value="DONE">완료</option>
             </select>
