@@ -6,7 +6,7 @@ import com.illoon.board.dto.BoardResponse;
 import com.illoon.meeting.MeetingRepository;
 import com.illoon.meeting.domain.Meeting;
 import com.illoon.project.domain.Project;
-import com.illoon.project.repository.ProjectRepository;
+import com.illoon.project.ProjectRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;

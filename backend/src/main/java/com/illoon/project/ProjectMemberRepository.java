@@ -1,4 +1,4 @@
-package com.illoon.project.repository;
+package com.illoon.project;
 
 import com.illoon.project.domain.ProjectMember;
 import org.springframework.data.jpa.repository.JpaRepository;

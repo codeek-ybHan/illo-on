@@ -5,72 +5,73 @@
 ```text
 illo-on/
 │
-├── src/                    # Vue Frontend
-│   ├── views/              # 페이지 단위 화면
-│   ├── components/         # 재사용 UI 컴포넌트
-│   ├── api/                # Backend API 호출
-│   ├── stores/             # Pinia 전역 상태 관리
-│   ├── router/             # Vue Router
-│   ├── assets/             # CSS, 이미지 등 정적 리소스
-│   ├── App.vue
-│   └── main.js
+├── front/                  # Vue Frontend
+│   ├── src/
+│   │   ├── views/          # 페이지 단위 화면
+│   │   ├── components/     # 재사용 UI 컴포넌트
+│   │   ├── api/            # Backend API 호출
+│   │   ├── stores/         # Pinia 전역 상태 관리
+│   │   ├── router/         # Vue Router
+│   │   ├── layouts/        # 레이아웃(Default/Auth)
+│   │   ├── assets/         # CSS, 이미지 등 정적 리소스
+│   │   ├── utils/          # 공통 함수
+│   │   ├── App.vue
+│   │   └── main.js
+│   ├── public/
+│   ├── Dockerfile
+│   └── package.json
 │
-├── backend/                # Spring Boot Backend
-├── docs/                   # 기획서 / API YAML / DBML / UI Flow
-├── public/
-├── package.json
-├── vite.config.js
+├── backend/                 # Spring Boot Backend (com.illoon 패키지, 도메인별 구성)
+├── docs/                    # 기획서 / API YAML / DBML / 운영 가이드
+├── docker-compose.yml       # db · backend · front · caddy
+├── deploy.sh                # 원격 서버 배포 스크립트
+├── Caddyfile                # 리버스 프록시 / HTTPS
 └── README.md
 ```
 
-> 현재 Vue 프로젝트가 `illo-on` 루트에 생성되어 있으므로, 당장은 `src/`를 중심으로 개발하고 `backend/`, `docs/`는 필요할 때 추가한다.
-
 ---
 
-## 2. Vue `src` 구조
+## 2. Vue `front/src` 구조
 
 ```text
-src/
+front/src/
 │
 ├── assets/
+│   ├── brand/
+│   │   └── logo-lockup.svg
 │   └── styles/
 │       ├── reset.css
-│       └── main.css
+│       └── main.css        # 디자인 토큰(색상/타이포/간격) 중앙 관리
 │
 ├── components/
-│   ├── common/
-│   │   ├── BaseButton.vue
-│   │   ├── BaseInput.vue
-│   │   ├── BaseModal.vue
-│   │   └── BaseCard.vue
-│   │
+│   ├── common/              # BaseButton, BaseInput, BaseModal, BaseCard,
+│   │                         # AppHeader, AppRail, SearchPalette, ToastHost 등
 │   ├── task/
 │   │   ├── TaskCard.vue
-│   │   ├── TaskList.vue
-│   │   └── TaskForm.vue
-│   │
+│   │   ├── TaskForm.vue
+│   │   └── TaskList.vue
 │   ├── meeting/
 │   │   ├── MeetingCard.vue
-│   │   ├── MeetingForm.vue
-│   │   ├── AudioUploader.vue
-│   │   ├── AiSummary.vue
+│   │   ├── MeetingForm.vue   # 회의 등록 + 오디오 업로드
+│   │   ├── AiBriefing.vue    # AI 요약/브리핑
 │   │   └── ActionPointCard.vue
-│   │
 │   ├── project/
-│   │   ├── ProjectCard.vue
 │   │   └── ProjectForm.vue
-│   │
 │   └── sprint/
-│       ├── SprintCard.vue
-│       └── SprintTaskList.vue
+│       ├── SprintBoard.vue
+│       ├── SprintForm.vue
+│       └── SprintPanel.vue
 │
 ├── views/
+│   ├── MainBoardView.vue
+│   ├── CalendarView.vue
 │   ├── auth/
 │   │   ├── LoginView.vue
 │   │   └── SignupView.vue
-│   ├── MainBoardView.vue
 │   ├── project/
-│   │   └── ProjectDetailView.vue
+│   │   ├── ProjectListView.vue
+│   │   ├── ProjectDetailView.vue
+│   │   └── InviteJoinView.vue
 │   ├── meeting/
 │   │   ├── MeetingListView.vue
 │   │   └── MeetingDetailView.vue
@@ -79,25 +80,15 @@ src/
 │   └── sprint/
 │       └── SprintView.vue
 │
-├── stores/
-│   ├── auth.js
-│   ├── project.js
-│   └── task.js
+├── layouts/
+│   ├── DefaultLayout.vue
+│   └── AuthLayout.vue
 │
-├── api/
-│   ├── axios.js
-│   ├── auth.js
-│   ├── project.js
-│   ├── task.js
-│   ├── meeting.js
-│   └── sprint.js
-│
+├── stores/                  # auth, project, task, meeting, sprint, ai, ui
+├── api/                     # axios, auth, project, task, meeting, sprint, ai
 ├── router/
 │   └── index.js
-│
-├── utils/
-│   ├── date.js
-│   └── validation.js
+├── utils/                   # date, validation, token, toast
 │
 ├── App.vue
 └── main.js
@@ -111,6 +102,9 @@ src/
 ### `components/`
 페이지 안에서 재사용하는 **UI 컴포넌트**.
 
+### `layouts/`
+페이지를 감싸는 **공통 레이아웃**(로그인 전/후).
+
 ### `api/`
 Spring Boot Backend의 **REST API 호출 코드**.
 
@@ -121,10 +115,10 @@ Pinia를 이용한 **전역 상태 관리**.
 Vue Router를 이용한 **페이지 이동 및 URL 관리**.
 
 ### `assets/`
-CSS, 이미지, 아이콘 등 **정적 리소스**.
+CSS(디자인 토큰), 이미지, 아이콘 등 **정적 리소스**.
 
 ### `utils/`
-날짜 변환, 입력값 검증 등 **공통 함수**.
+날짜 변환, 입력값 검증, 토큰 처리 등 **공통 함수**.
 
 ---
 
@@ -139,12 +133,14 @@ CSS, 이미지, 아이콘 등 **정적 리소스**.
 ├── 회의
 │    ├── MeetingListView.vue
 │    └── MeetingDetailView.vue
-│         ├── AudioUploader.vue
-│         ├── AiSummary.vue
+│         ├── MeetingForm.vue (오디오 업로드 포함)
+│         ├── AiBriefing.vue
 │         └── ActionPointCard.vue
 │
 ├── 프로젝트
-│    └── ProjectDetailView.vue
+│    ├── ProjectListView.vue
+│    ├── ProjectDetailView.vue
+│    └── InviteJoinView.vue
 │
 ├── Task
 │    └── TaskDetailView.vue
@@ -153,7 +149,35 @@ CSS, 이미지, 아이콘 등 **정적 리소스**.
      └── SprintView.vue
 ```
 
-## 5. 개발 원칙
+## 5. 백엔드 (`backend/src/main/java/com/illoon`)
+
+도메인 패키지 기준으로 구성하며, 각 도메인 패키지 루트에 Controller/Service/Repository를,
+필요 시 `domain/`(엔티티) · `dto/`(요청·응답) 서브패키지를 둔다.
+
+```text
+com/illoon/
+├── auth/        # AuthController, AuthService
+├── board/       # BoardController, BoardService (메인보드 집계)
+├── project/     # ProjectController, InviteController, ProjectService
+│   ├── domain/  # Project, ProjectMember, ProjectInvite, ...
+│   └── dto/
+├── meeting/     # MeetingController, MeetingService, MeetingRepository, ...
+│   ├── domain/
+│   └── dto/
+├── sprint/      # SprintController, SprintService, SprintRepository
+│   ├── domain/
+│   └── dto/
+├── task/        # TaskController, TaskService, TaskRepository
+│   ├── domain/
+│   └── dto/
+├── team/        # Team, TeamRepository
+├── user/        # User, UserRepository
+│   └── dto/
+├── ai/          # AI 분석/브리핑 (analyzer, stt, domain, dto)
+└── common/      # 설정, 공통 엔티티, 보안, 예외 처리
+```
+
+## 6. 개발 원칙
 
 - **페이지** → `views/`
 - **재사용 UI** → `components/`
