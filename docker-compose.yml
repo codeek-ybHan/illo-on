@@ -1,7 +1,15 @@
+# 로그 파일 무한 증가 방지 — 컨테이너당 최대 30MB(10MB x 3롤)로 캡.
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   db:
     image: mysql:8.0
     restart: unless-stopped
+    logging: *default-logging
     # 1GB RAM 인스턴스 대응 — MySQL 기본 메모리 사용량을 크게 줄인다.
     command:
       - --innodb-buffer-pool-size=64M
@@ -24,6 +32,7 @@ services:
   backend:
     build: ./backend
     restart: unless-stopped
+    logging: *default-logging
     depends_on:
       db:
         condition: service_healthy
@@ -60,6 +69,7 @@ services:
   front:
     build: ./front
     restart: unless-stopped
+    logging: *default-logging
     depends_on:
       - backend
     # 공개 진입점은 caddy. front 는 루프백에만 노출해서 deploy.sh 헬스체크에만 쓴다.
@@ -70,6 +80,7 @@ services:
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
+    logging: *default-logging
     depends_on:
       - front
     # 공개 포트. 80 = ACME 챌린지 + HTTP→HTTPS 리다이렉트, 443 = HTTPS.
