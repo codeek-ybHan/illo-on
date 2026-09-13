@@ -75,3 +75,13 @@ export function daysUntil(value) {
 export function isToday(value) {
   return daysUntil(value) === 0
 }
+
+/** 현재 시각 기준 인사 문구 (이모지 포함) */
+export function greetingPhrase(date = new Date()) {
+  const h = date.getHours()
+  if (h >= 5 && h < 11) return '좋은 아침이에요 🌅'
+  if (h >= 11 && h < 14) return '점심 맛있게 드세요 🍚'
+  if (h >= 14 && h < 18) return '활기찬 오후 보내세요 ☀️'
+  if (h >= 18 && h < 22) return '오늘 하루도 고생 많으셨어요 🌇'
+  return '늦은 시간까지 고생 많으세요 🌙' // 22시~05시
+}

@@ -12,7 +12,7 @@ import ProgressBar from '@/components/common/ProgressBar.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import TaskList from '@/components/task/TaskList.vue'
 import AppIcon from '@/components/common/AppIcon.vue'
-import { formatDate, formatDue, daysUntil } from '@/utils/date'
+import { formatDate, formatDue, daysUntil, greetingPhrase } from '@/utils/date'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -22,8 +22,19 @@ const { myTasks, loading: tasksLoading } = storeToRefs(taskStore)
 const board = ref(null)
 const boardLoading = ref(true)
 
-const greeting = computed(() => `${auth.user?.name || ''}님, 좋은 아침이에요 👋`.trim())
+const greeting = computed(() => `${auth.user?.name || ''}님, ${greetingPhrase()}`.trim())
 const openCount = computed(() => myTasks.value.filter((t) => t.status !== 'DONE').length)
+
+const DEFAULT_SUBTITLE = '오늘의 업무와 일정을 한눈에 확인하세요.'
+const subtitle = computed(() => {
+  const b = board.value
+  if (!b || !myTasks.value.length) return DEFAULT_SUBTITLE
+  if (b.overdueCount > 0) return `마감이 지난 업무가 ${b.overdueCount}건 있어요. 먼저 확인해보세요.`
+  if (openCount.value === 0) return '오늘 할 일을 모두 마쳤어요. 정말 잘하고 있어요!'
+  if (b.todayTaskCount > 0) return `오늘 마감인 업무가 ${b.todayTaskCount}건 있어요.`
+  if (b.dueSoonCount > 0) return `3일 내 마감인 업무가 ${b.dueSoonCount}건 있어요.`
+  return DEFAULT_SUBTITLE
+})
 
 // "오늘 할 일" 스탯 카드 → 오늘의 일정 섹션으로 스크롤
 const scheduleSectionEl = ref(null)
@@ -78,7 +89,7 @@ async function handleStatusChange(task, status) {
 </script>
 
 <template>
-  <PagePlaceholder :title="greeting" subtitle="오늘의 업무와 일정을 한눈에 확인하세요.">
+  <PagePlaceholder :title="greeting" :subtitle="subtitle">
     <!-- 스탯 카드 3열 -->
     <div class="grid-3">
       <StatCard
