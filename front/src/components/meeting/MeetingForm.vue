@@ -31,6 +31,7 @@ const form = reactive({
   meetingAt: '',
   content: '',
   attendeeIds: [],
+  guestNames: [],
 })
 const errors = reactive({ title: '', project: '' })
 const formError = ref('')
@@ -39,6 +40,7 @@ const members = ref([])
 const membersLoading = ref(false)
 const inputMode = ref('text') // 'text' | 'audio'
 const audioFile = ref(null)
+const guestInput = ref('')
 
 const fixedProject = computed(() => props.projectId != null)
 const effectiveProjectId = computed(() =>
@@ -57,12 +59,14 @@ watch(
     errors.project = ''
     inputMode.value = 'text'
     audioFile.value = null
+    guestInput.value = ''
     const m = props.meeting
     form.projectId = m?.projectId != null ? String(m.projectId) : ''
     form.title = m?.title ?? ''
     form.meetingAt = m?.meetingAt ? m.meetingAt.slice(0, 16) : ''
     form.content = m?.content ?? ''
     form.attendeeIds = m?.attendees ? m.attendees.map((a) => a.userId) : []
+    form.guestNames = m?.guestNames ? [...m.guestNames] : []
   },
 )
 
@@ -92,6 +96,17 @@ function toggleAttendee(userId) {
   else form.attendeeIds.push(userId)
 }
 
+function addGuest() {
+  const name = guestInput.value.trim()
+  if (!name || form.guestNames.includes(name)) return
+  form.guestNames.push(name)
+  guestInput.value = ''
+}
+
+function removeGuest(name) {
+  form.guestNames = form.guestNames.filter((n) => n !== name)
+}
+
 function onAudioPick(e) {
   audioFile.value = e.target.files?.[0] ?? null
 }
@@ -113,6 +128,7 @@ async function onSubmit() {
       content: useAudio ? null : form.content.trim() || null,
       meetingAt: form.meetingAt ? `${form.meetingAt}:00` : null,
       attendeeIds: form.attendeeIds,
+      guestNames: form.guestNames,
     }
     const created = await props.submitFn(payload, Number(effectiveProjectId.value))
     emit('update:open', false)
@@ -171,6 +187,28 @@ async function onSubmit() {
             />
             {{ mem.name }}
           </label>
+        </div>
+      </div>
+
+      <div class="mform__field">
+        <span class="mform__label">외부 참석자</span>
+        <div class="mform__guest-input">
+          <input
+            v-model="guestInput"
+            type="text"
+            placeholder="이름 입력 후 추가"
+            maxlength="50"
+            @keydown.enter.prevent="addGuest"
+          />
+          <BaseButton type="button" variant="ghost" size="sm" @click="addGuest">추가</BaseButton>
+        </div>
+        <div v-if="form.guestNames.length" class="mform__attendees">
+          <span v-for="name in form.guestNames" :key="name" class="mform__chk mform__chk--guest">
+            {{ name }}
+            <button type="button" class="mform__chk-remove" aria-label="삭제" @click="removeGuest(name)">
+              ×
+            </button>
+          </span>
         </div>
       </div>
 
@@ -264,6 +302,42 @@ async function onSubmit() {
   border-radius: var(--r-full);
   font-size: var(--fs-sm);
   cursor: pointer;
+}
+.mform__guest-input {
+  display: flex;
+  gap: var(--sp-2);
+}
+.mform__guest-input input {
+  flex: 1;
+  height: 36px;
+  padding: 0 var(--sp-3);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  background: var(--c-surface);
+  font-size: var(--fs-sm);
+}
+.mform__guest-input input:focus {
+  outline: none;
+  border-color: var(--c-primary);
+}
+.mform__chk--guest {
+  cursor: default;
+  border-style: dashed;
+  color: var(--c-text-2);
+}
+.mform__chk-remove {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--r-full);
+  color: var(--c-text-muted);
+  font-size: 14px;
+  line-height: 1;
+}
+.mform__chk-remove:hover {
+  background: var(--c-surface-alt);
+  color: var(--c-text);
 }
 .mform__textarea {
   padding: var(--sp-3);

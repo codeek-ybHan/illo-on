@@ -15,5 +15,8 @@ public record MeetingCreateRequest(
         LocalDateTime meetingAt,
 
         /** 참석자 userId 목록 (프로젝트 멤버만) */
-        List<Long> attendeeIds
+        List<Long> attendeeIds,
+
+        /** 프로젝트 멤버가 아닌 외부 참석자 이름 목록 */
+        List<@Size(max = 50, message = "외부 참석자 이름은 50자 이하여야 합니다.") String> guestNames
 ) {}

@@ -4,6 +4,7 @@ import com.illoon.ai.AiService;
 import com.illoon.common.exception.ApiException;
 import com.illoon.common.exception.ErrorCode;
 import com.illoon.meeting.domain.Meeting;
+import com.illoon.meeting.domain.MeetingGuest;
 import com.illoon.meeting.domain.MeetingMember;
 import com.illoon.meeting.dto.MeetingCreateRequest;
 import com.illoon.meeting.dto.MeetingDetailResponse;
@@ -33,12 +34,16 @@ public class MeetingService {
 
     private final MeetingRepository meetingRepository;
     private final MeetingMemberRepository meetingMemberRepository;
+    private final MeetingGuestRepository meetingGuestRepository;
     private final ProjectService projectService;
     private final ProjectRepository projectRepository;
     private final ProjectMemberRepository projectMemberRepository;
     private final UserRepository userRepository;
     private final TaskRepository taskRepository;
     private final AiService aiService;
+
+    /** 외부 참석자는 한 회의당 이만큼만 (오남용 방지). */
+    private static final int MAX_GUESTS = 20;
 
     /** 내가 속한 모든 프로젝트의 회의 (메인보드 · 캘린더용). from/to 는 meetingAt 기준 날짜 필터. */
     @Transactional(readOnly = true)
@@ -55,7 +60,7 @@ public class MeetingService {
                 .filter(m -> to == null || m.getMeetingAt() == null
                         || !m.getMeetingAt().toLocalDate().isAfter(to))
                 .map(m -> MeetingResponse.of(m, names.get(m.getProjectId()),
-                        meetingMemberRepository.countByIdMeetingId(m.getId()),
+                        attendeeCount(m.getId()),
                         aiService.hasAnalysis(m.getId()),
                         taskRepository.countByMeetingId(m.getId())))
                 .toList();
@@ -68,7 +73,7 @@ public class MeetingService {
         return meetingRepository.findAllByProjectIdOrderByMeetingAtDescCreatedAtDesc(projectId)
                 .stream()
                 .map(m -> MeetingResponse.of(m, projectName,
-                        meetingMemberRepository.countByIdMeetingId(m.getId()),
+                        attendeeCount(m.getId()),
                         aiService.hasAnalysis(m.getId()),
                         taskRepository.countByMeetingId(m.getId())))
                 .toList();
@@ -94,6 +99,7 @@ public class MeetingService {
                 .createdBy(userId)
                 .build());
         saveAttendees(meeting.getId(), req.attendeeIds());
+        saveGuests(meeting.getId(), req.guestNames());
         return toDetail(meeting);
     }
 
@@ -108,6 +114,10 @@ public class MeetingService {
             meetingMemberRepository.deleteAllByIdMeetingId(meetingId);
             saveAttendees(meetingId, req.attendeeIds());
         }
+        if (req.guestNames() != null) {
+            meetingGuestRepository.deleteAllByMeetingId(meetingId);
+            saveGuests(meetingId, req.guestNames());
+        }
         return toDetail(meeting);
     }
 
@@ -116,6 +126,7 @@ public class MeetingService {
         Meeting meeting = findMeeting(meetingId);
         projectService.requireMember(meeting.getProjectId(), userId);
         meetingMemberRepository.deleteAllByIdMeetingId(meetingId);
+        meetingGuestRepository.deleteAllByMeetingId(meetingId);
         // 회의에서 생성된 Task 는 유지하고 meeting_id 만 끊는다
         taskRepository.findAllByMeetingId(meetingId).forEach(t -> t.update(
                 t.getTitle(), t.getDescription(), t.getAssigneeId(), t.getDueDate(),
@@ -140,6 +151,24 @@ public class MeetingService {
                 .forEach(uid -> meetingMemberRepository.save(new MeetingMember(meetingId, uid)));
     }
 
+    /** 공백 제거·중복 제거·개수 제한 후 저장. 잘못된 항목은 조용히 걸러낸다(자유 입력이라 관대하게). */
+    private void saveGuests(Long meetingId, List<String> guestNames) {
+        if (guestNames == null) return;
+        guestNames.stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(n -> !n.isBlank())
+                .distinct()
+                .limit(MAX_GUESTS)
+                .forEach(name -> meetingGuestRepository.save(
+                        MeetingGuest.builder().meetingId(meetingId).name(name).build()));
+    }
+
+    private long attendeeCount(Long meetingId) {
+        return meetingMemberRepository.countByIdMeetingId(meetingId)
+                + meetingGuestRepository.countByMeetingId(meetingId);
+    }
+
     private MeetingDetailResponse toDetail(Meeting meeting) {
         List<Long> userIds = meetingMemberRepository.findAllByIdMeetingId(meeting.getId())
                 .stream().map(MeetingMember::getUserId).toList();
@@ -149,8 +178,10 @@ public class MeetingService {
                 .map(users::get).filter(Objects::nonNull)
                 .map(u -> new MeetingDetailResponse.Attendee(u.getId(), u.getName(), u.getEmail()))
                 .toList();
+        List<String> guestNames = meetingGuestRepository.findAllByMeetingId(meeting.getId())
+                .stream().map(MeetingGuest::getName).toList();
         return MeetingDetailResponse.of(meeting, projectName(meeting.getProjectId()),
-                attendees, aiService.hasAnalysis(meeting.getId()),
+                attendees, guestNames, aiService.hasAnalysis(meeting.getId()),
                 taskRepository.countByMeetingId(meeting.getId()));
     }
 

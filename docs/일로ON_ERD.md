@@ -103,6 +103,12 @@ Table MEETING_MEMBER {
   }
 }
 
+Table MEETING_GUEST {
+  meeting_guest_id bigint [pk, increment]
+  meeting_id bigint [not null, ref: > MEETING.meeting_id]
+  name varchar(50) [not null, note: '프로젝트 멤버가 아닌 외부 참석자 — 계정 없음, 이름만 기록']
+}
+
 Table SPRINT {
   sprint_id bigint [pk, increment]
   project_id bigint [not null, ref: > PROJECT.project_id]

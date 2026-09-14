@@ -230,7 +230,7 @@ function timeOf(iso) {
   opacity: 0.55;
 }
 .cal__day.is-today .cal__num {
-  color: var(--c-accent);
+  color: var(--c-danger);
   font-weight: 700;
 }
 .cal__day.is-selected {

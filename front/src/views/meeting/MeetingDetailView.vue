@@ -137,6 +137,7 @@ async function saveContent() {
       content: contentDraft.value.trim() || null,
       meetingAt: current.value.meetingAt,
       attendeeIds: current.value.attendees.map((a) => a.userId),
+      guestNames: current.value.guestNames ?? [],
     })
     editingContent.value = false
     contentSaved.value = true
@@ -201,7 +202,17 @@ async function handleDelete() {
             <span v-for="a in current.attendees" :key="a.userId" class="attendee" :title="a.email">
               {{ a.name }}
             </span>
-            <span v-if="!current.attendees.length" class="u-muted">참석자 미지정</span>
+            <span
+              v-for="name in current.guestNames"
+              :key="name"
+              class="attendee attendee--guest"
+              title="외부 참석자"
+            >
+              {{ name }}
+            </span>
+            <span v-if="!current.attendees.length && !current.guestNames?.length" class="u-muted">
+              참석자 미지정
+            </span>
           </div>
         </div>
       </BaseCard>
@@ -356,6 +367,11 @@ async function handleDelete() {
   border-radius: var(--r-full);
   background: var(--c-surface-alt);
   font-size: var(--fs-xs);
+}
+.attendee--guest {
+  background: transparent;
+  border: 1px dashed var(--c-border-strong);
+  color: var(--c-text-2);
 }
 .tabs {
   display: flex;

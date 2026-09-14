@@ -370,7 +370,7 @@ function clear() {
 }
 .dp__day.is-today {
   font-weight: 700;
-  color: var(--c-accent);
+  color: var(--c-danger);
 }
 .dp__day.is-selected {
   background: var(--c-primary);
