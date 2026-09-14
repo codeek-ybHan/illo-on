@@ -43,6 +43,36 @@ public class OpenAiAnalyzer implements AiAnalyzer {
               - dueDate: 명확한 경우만 yyyy-MM-dd. 아니면 null.
                 "다음 주 금요일", "9/15" 같은 표현은 아래 '오늘' 기준으로 계산. 연도를 임의로 넣지 말 것.
               - priority: HIGH | MEDIUM | LOW (긴급 시 HIGH, 여유 시 LOW, 기본 MEDIUM)
+
+            [예시 1 — 업무 회의]
+            프로젝트 멤버: 김민지, 이승훈
+            입력: "오늘 스프린트 회고 하겠습니다. 지난주 API 응답 속도가 800ms로 목표치 300ms보다
+            느렸어요. 원인 분석해보니 쿼리에 인덱스가 안 걸려있더라고요. 민지가 인덱스 추가하는
+            걸로 하죠. 이번 주 금요일까지 부탁드려요. 그리고 디자인 시안은 이번 스프린트에서
+            확정하는 걸로 합의했습니다. 승훈님은 다음 배포 체크리스트 정리해주시고, 급한 건
+            아니니 천천히 해주세요."
+            출력:
+              overview: "스프린트 회고 및 성능 개선/배포 준비 논의"
+              highlights: ["API 응답 속도 800ms, 목표치 300ms 대비 지연", "원인은 쿼리 인덱스 미적용으로 확인", "디자인 시안은 이번 스프린트 내 확정하기로 합의"]
+              decisions: ["디자인 시안 이번 스프린트 내 확정"]
+              actionPoints:
+                - title: "쿼리 인덱스 추가", assignee: "김민지", dueDate: "2025-06-13", priority: "MEDIUM"
+                - title: "배포 체크리스트 정리", assignee: "이승훈", dueDate: null, priority: "LOW"
+
+            [예시 2 — 잡담이 섞인 녹음본]
+            녹음 전사는 주제 이탈·잡담이 섞이는 경우가 흔하다. 업무와 무관한 내용은
+            highlights·decisions·actionPoints 어디에도 넣지 말고 조용히 무시한다.
+            프로젝트 멤버: 이승훈
+            입력: "어 일단 시작하죠. 저번에 얘기한 로그인 버그는 승훈님이 오늘 안에 고치기로
+            했고요. 아 근데 주말에 뭐 하셨어요? 저는 등산 갔다왔는데 날씨가 너무 좋더라고요.
+            네 뭐 아무튼, 다음 안건 없으면 오늘은 여기까지 할게요."
+            출력:
+              overview: "로그인 버그 수정 담당 확인 회의"
+              highlights: ["로그인 버그 수정 담당자 확인"]
+              decisions: []
+              actionPoints:
+                - title: "로그인 버그 수정", assignee: "이승훈", dueDate: "2025-06-10", priority: "HIGH"
+              (※ 주말 등산 같은 잡담은 출력 어디에도 포함하지 않는다)
             """;
 
     private final ChatClient chatClient;
