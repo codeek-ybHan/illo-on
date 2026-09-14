@@ -11,6 +11,7 @@ import com.illoon.common.exception.ErrorCode;
 import com.illoon.meeting.MeetingRepository;
 import com.illoon.meeting.domain.Meeting;
 import com.illoon.project.ProjectService;
+import com.illoon.project.dto.MemberResponse;
 import com.illoon.task.domain.TaskPriority;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -62,7 +63,10 @@ public class AiService {
             throw new ApiException(ErrorCode.MEETING_CONTENT_EMPTY);
         }
 
-        Briefing briefing = analyzer.analyze(text); // 느림 — 트랜잭션 밖
+        List<String> memberNames = projectService.listMembers(meeting.getProjectId(), userId).stream()
+                .map(MemberResponse::name)
+                .toList();
+        Briefing briefing = analyzer.analyze(text, memberNames); // 느림 — 트랜잭션 밖
 
         return store.save(
                 meetingId,

@@ -64,7 +64,7 @@ public class MockAiAnalyzer implements AiAnalyzer {
             "회의(?:는|입니다|이다|를\\s?진행|의\\s?목적)|위한\\s?(?:것|자리)|목적은|안건은|논의하(?:기|고자)");
 
     @Override
-    public Briefing analyze(String text) {
+    public Briefing analyze(String text, List<String> memberNames) {
         List<String> sentences = new ArrayList<>();
         Matcher sm = SENTENCE.matcher(text == null ? "" : text);
         while (sm.find()) {
@@ -84,17 +84,18 @@ public class MockAiAnalyzer implements AiAnalyzer {
                 consumed.add(i);
                 continue;
             }
-            String assignee = extractName(s);
+            String rawName = extractName(s);
+            String assignee = resolveAssignee(rawName, memberNames);
             boolean hasVerb = VERB_TAIL.matcher(s).find();
 
             if (assignee != null && hasVerb && actionPoints.size() < 15) {
-                actionPoints.add(ap(s, assignee));
+                actionPoints.add(ap(s, rawName, assignee));
                 consumed.add(i);
             } else if (DECISION.matcher(s).find() && decisions.size() < 12) {
                 decisions.add(cleanDecision(s));
                 consumed.add(i);
             } else if (hasVerb && ACTION_TAIL.matcher(s).find() && actionPoints.size() < 15) {
-                actionPoints.add(ap(s, assignee));
+                actionPoints.add(ap(s, rawName, assignee));
                 consumed.add(i);
             }
         }
@@ -139,8 +140,8 @@ public class MockAiAnalyzer implements AiAnalyzer {
         return s.length() > n ? s.substring(0, n) + "…" : s;
     }
 
-    private Briefing.ActionPoint ap(String s, String assignee) {
-        return new Briefing.ActionPoint(summarizeTitle(s, assignee), assignee, extractDate(s), extractPriority(s));
+    private Briefing.ActionPoint ap(String s, String rawName, String assignee) {
+        return new Briefing.ActionPoint(summarizeTitle(s, rawName), assignee, extractDate(s), extractPriority(s));
     }
 
     // ---------- Action Point 업무명 ----------
@@ -179,6 +180,21 @@ public class MockAiAnalyzer implements AiAnalyzer {
         while (m.find()) {
             String name = m.group(1);
             if (name.length() >= 2 && SURNAMES.contains(name.charAt(0))) return name;
+        }
+        return null;
+    }
+
+    /**
+     * 정규식으로 뽑은 이름 후보를 실제 프로젝트 멤버와 대조한다.
+     * 멤버 목록이 없으면(정보 없음) 이전처럼 후보를 그대로 신뢰한다 — 목록이 있을 때만 오탐을 걸러낸다.
+     */
+    private String resolveAssignee(String rawName, List<String> memberNames) {
+        if (rawName == null) return null;
+        if (memberNames == null || memberNames.isEmpty()) return rawName;
+        String candidate = rawName.replaceAll("\\s", "");
+        for (String member : memberNames) {
+            String m = member.replaceAll("\\s", "");
+            if (m.equals(candidate) || m.contains(candidate) || candidate.contains(m)) return member;
         }
         return null;
     }

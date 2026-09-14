@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
+import java.util.List;
 
 /**
  * Spring AI + OpenAI. Structured Output(.entity)으로 Briefing JSON을 받는다. (기획서 §8-1, §8-2)
@@ -36,7 +37,9 @@ public class OpenAiAnalyzer implements AiAnalyzer {
             [actionPoints] 실행해야 할 구체적 업무.
               - title: 대화 문장 금지. "무엇을 + 동작"의 간결한 명사구.
                 예) "API 명세는 김민지가 9/15까지 작성하기로 했습니다" -> "API 명세서 작성"
-              - assignee: 명확히 지목된 경우만 이름. 아니면 null (지어내지 말 것)
+              - assignee: 아래 [프로젝트 멤버 목록]에 있는 이름 중 명확히 지목된 사람만.
+                목록에 없는 사람(고객사 담당자, 예시로 언급된 제3자 등)은 절대 넣지 말 것.
+                지목된 사람이 목록에 없거나 불명확하면 null (지어내지 말 것)
               - dueDate: 명확한 경우만 yyyy-MM-dd. 아니면 null.
                 "다음 주 금요일", "9/15" 같은 표현은 아래 '오늘' 기준으로 계산. 연도를 임의로 넣지 말 것.
               - priority: HIGH | MEDIUM | LOW (긴급 시 HIGH, 여유 시 LOW, 기본 MEDIUM)
@@ -51,18 +54,29 @@ public class OpenAiAnalyzer implements AiAnalyzer {
     }
 
     @Override
-    public Briefing analyze(String meetingText) {
+    public Briefing analyze(String meetingText, List<String> memberNames) {
         try {
+            String members = (memberNames == null || memberNames.isEmpty())
+                    ? "(없음)" : String.join(", ", memberNames);
             return chatClient.prompt()
-                    .user(u -> u.text("오늘은 {today} (yyyy-MM-dd) 이다.\n\n다음 회의 내용을 분석해줘:\n\n{content}")
+                    .user(u -> u.text("""
+                            오늘은 {today} (yyyy-MM-dd) 이다.
+
+                            [프로젝트 멤버 목록]
+                            {members}
+
+                            다음 회의 내용을 분석해줘:
+
+                            {content}""")
                             .param("today", LocalDate.now().toString())
+                            .param("members", members)
                             .param("content", meetingText))
                     .call()
                     .entity(Briefing.class);
         } catch (Exception e) {
             // OpenAI 장애·쿼터 초과 등 → 502 대신 규칙 기반 분석으로 degrade
             log.warn("OpenAI analyze failed, falling back to rule-based analyzer: {}", e.getMessage());
-            return fallback.analyze(meetingText);
+            return fallback.analyze(meetingText, memberNames);
         }
     }
 }
