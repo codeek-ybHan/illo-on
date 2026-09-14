@@ -52,7 +52,7 @@ public class AiService {
         AnalysisSource source;
         String text;
         if (audio != null && !audio.isEmpty()) {
-            text = speechToText.transcribe(audio); // 느림 — 트랜잭션 밖
+            text = TranscriptSanitizer.collapseRepetitions(speechToText.transcribe(audio)); // 느림 — 트랜잭션 밖
             source = AnalysisSource.AUDIO;
         } else {
             text = meeting.getContent();
