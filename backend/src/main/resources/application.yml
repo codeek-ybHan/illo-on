@@ -49,9 +49,9 @@ spring.ai:
     audio:
       transcription:
         options:
-          # whisper-1 이 기본. 더 빠른 gpt-4o-mini-transcribe 를 쓰려면
-          #   OPENAI_STT_MODEL=gpt-4o-mini-transcribe
-          model: ${OPENAI_STT_MODEL:whisper-1}
+          # gpt-4o-mini-transcribe 가 기본 — whisper-1 보다 정확도가 높고 반복 루프도 덜함.
+          # 예전 whisper-1 로 되돌리려면 OPENAI_STT_MODEL=whisper-1
+          model: ${OPENAI_STT_MODEL:gpt-4o-mini-transcribe}
           language: ko
   # 재시도: 기본 10회/최대 3분 백오프는 장애 시 요청이 수 분간 매달림 → 축소
   retry:

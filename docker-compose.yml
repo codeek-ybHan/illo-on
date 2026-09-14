@@ -54,7 +54,7 @@ services:
       AI_PROVIDER: ${AI_PROVIDER:-mock}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-not-configured}
       OPENAI_CHAT_MODEL: ${OPENAI_CHAT_MODEL:-gpt-4o-mini}
-      OPENAI_STT_MODEL: ${OPENAI_STT_MODEL:-whisper-1}
+      OPENAI_STT_MODEL: ${OPENAI_STT_MODEL:-gpt-4o-mini-transcribe}
     # prod 프로파일은 ddl-auto=validate 라 스키마가 미리 있어야 한다.
     # 데모 편의를 위해 첫 기동 시 자동 생성(update)으로 오버라이드한다.
     # 실제 운영에서는 이 줄을 지우고 DBML(docs/일로ON_ERD.md) 기준으로 스키마를 관리할 것.
