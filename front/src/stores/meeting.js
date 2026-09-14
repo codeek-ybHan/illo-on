@@ -72,6 +72,12 @@ export const useMeetingStore = defineStore('meeting', () => {
     }
   }
 
+  /** AI 브리핑 수동 수정 저장(재분석 아님) */
+  async function updateSummary(meetingId, payload) {
+    briefing.value = await aiApi.updateSummary(meetingId, payload)
+    return briefing.value
+  }
+
   async function updateMeeting(meetingId, payload) {
     const updated = await api.updateMeeting(meetingId, payload)
     if (current.value?.meetingId === updated.meetingId) current.value = updated
@@ -101,6 +107,7 @@ export const useMeetingStore = defineStore('meeting', () => {
     updateMeeting,
     deleteMeeting,
     analyzeMeeting,
+    updateSummary,
     setPendingAudio,
     takePendingAudio,
   }

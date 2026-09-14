@@ -5,6 +5,7 @@ import com.illoon.ai.analyzer.Briefing;
 import com.illoon.ai.domain.ActionPointItem;
 import com.illoon.ai.domain.AnalysisSource;
 import com.illoon.ai.dto.BriefingResponse;
+import com.illoon.ai.dto.BriefingUpdateRequest;
 import com.illoon.ai.stt.SpeechToText;
 import com.illoon.common.exception.ApiException;
 import com.illoon.common.exception.ErrorCode;
@@ -77,6 +78,22 @@ public class AiService {
                 safe(briefing.decisions()),
                 toItems(safe(briefing.actionPoints())),
                 provider);
+    }
+
+    /** 브리핑 수동 수정 — 재분석 없이 저장된 결과를 사용자가 고친 내용으로 덮어쓴다. */
+    public BriefingResponse updateSummary(Long meetingId, Long userId, BriefingUpdateRequest req) {
+        store.loadForMember(meetingId, userId);
+        List<ActionPointItem> items = safe(req.actionPoints()).stream()
+                .filter(ap -> ap.title() != null && !ap.title().isBlank())
+                .map(ap -> ActionPointItem.builder()
+                        .title(ap.title().trim())
+                        .assigneeHint(blankToNull(ap.assigneeHint()))
+                        .dueDate(ap.dueDate())
+                        .priority(parsePriority(ap.priority()))
+                        .build())
+                .toList();
+        return store.updateAnalysis(meetingId, nullToEmpty(req.overview()),
+                safe(req.highlights()), safe(req.decisions()), items, provider);
     }
 
     @Transactional(readOnly = true)

@@ -58,4 +58,19 @@ class AiAnalysisStore {
 
         return BriefingResponse.from(analysis, provider);
     }
+
+    /**
+     * 수동 수정 저장. 재분석이 아니라 이미 있는 결과를 덮어쓰는 것이므로
+     * source·STT 텍스트 반영 로직은 건드리지 않고 기존 레코드가 있어야만 동작한다.
+     */
+    @Transactional
+    public BriefingResponse updateAnalysis(Long meetingId, String overview, List<String> highlights,
+                                           List<String> decisions, List<ActionPointItem> actionPoints,
+                                           String provider) {
+        MeetingAnalysis analysis = analysisRepository.findByMeetingId(meetingId)
+                .orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND, "아직 AI 분석 결과가 없습니다."));
+        analysis.apply(overview, analysis.getSource(), highlights, decisions, actionPoints);
+        analysisRepository.save(analysis);
+        return BriefingResponse.from(analysis, provider);
+    }
 }

@@ -296,6 +296,7 @@ async function handleDelete() {
 
         <AiBriefing
           v-else-if="briefing"
+          :meeting-id="current.meetingId"
           :briefing="briefing"
           :members="members"
           :registered-indexes="registeredIndexes"

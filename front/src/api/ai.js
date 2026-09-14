@@ -25,6 +25,11 @@ export function fetchSummary(meetingId) {
   return http.get(`/meetings/${meetingId}/summary`).then((res) => res.data)
 }
 
+/** 브리핑 수동 수정 — { overview, highlights[], decisions[], actionPoints[] } */
+export function updateSummary(meetingId, payload) {
+  return http.put(`/meetings/${meetingId}/summary`, payload).then((res) => res.data)
+}
+
 /**
  * AI 어시스턴트 대화. history: [{ role: 'user'|'assistant', content }]
  * → { reply, provider }  (provider: 'openai' 실제 응답 / 'mock' 설정 안내)

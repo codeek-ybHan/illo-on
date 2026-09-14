@@ -1,8 +1,10 @@
 package com.illoon.ai;
 
 import com.illoon.ai.dto.BriefingResponse;
+import com.illoon.ai.dto.BriefingUpdateRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -30,5 +32,13 @@ public class AiController {
     public BriefingResponse summary(@AuthenticationPrincipal Long userId,
                                     @PathVariable Long meetingId) {
         return aiService.getSummary(meetingId, userId);
+    }
+
+    @Operation(summary = "회의 브리핑 수동 수정")
+    @PutMapping("/summary")
+    public BriefingResponse updateSummary(@AuthenticationPrincipal Long userId,
+                                          @PathVariable Long meetingId,
+                                          @Valid @RequestBody BriefingUpdateRequest request) {
+        return aiService.updateSummary(meetingId, userId, request);
     }
 }
