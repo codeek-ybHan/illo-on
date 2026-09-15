@@ -136,6 +136,8 @@ async function handleStatusChange(task, status) {
         :tasks="myTasks"
         :loading="tasksLoading"
         show-project
+        default-filter="TODO"
+        :max-items="5"
         @change-status="handleStatusChange"
       />
     </section>

@@ -6,6 +6,8 @@ const props = defineProps({
   tasks: { type: Array, default: () => [] },
   loading: { type: Boolean, default: false },
   showProject: { type: Boolean, default: false },
+  defaultFilter: { type: String, default: 'ALL' },
+  maxItems: { type: Number, default: null },
 })
 defineEmits(['change-status'])
 
@@ -15,11 +17,22 @@ const FILTERS = [
   { label: '진행 중', value: 'IN_PROGRESS' },
   { label: '완료', value: 'DONE' },
 ]
-const filter = ref('ALL')
+const filter = ref(props.defaultFilter)
+const expanded = ref(false)
 
-const visible = computed(() =>
+function selectFilter(value) {
+  filter.value = value
+  expanded.value = false
+}
+
+const filtered = computed(() =>
   filter.value === 'ALL' ? props.tasks : props.tasks.filter((t) => t.status === filter.value),
 )
+const isCapped = computed(() => props.maxItems != null && filtered.value.length > props.maxItems)
+const visible = computed(() =>
+  isCapped.value && !expanded.value ? filtered.value.slice(0, props.maxItems) : filtered.value,
+)
+const hiddenCount = computed(() => filtered.value.length - props.maxItems)
 </script>
 
 <template>
@@ -30,7 +43,7 @@ const visible = computed(() =>
         :key="f.value"
         class="tlist__filter"
         :class="{ 'is-active': filter === f.value }"
-        @click="filter = f.value"
+        @click="selectFilter(f.value)"
       >
         {{ f.label }}
         <span v-if="f.value === 'ALL'" class="tlist__count">{{ tasks.length }}</span>
@@ -53,6 +66,9 @@ const visible = computed(() =>
         :show-project="showProject"
         @change-status="(task, status) => $emit('change-status', task, status)"
       />
+      <button v-if="isCapped && !expanded" class="tlist__more" type="button" @click="expanded = true">
+        더보기 (+{{ hiddenCount }})
+      </button>
     </div>
   </div>
 </template>
@@ -87,5 +103,17 @@ const visible = computed(() =>
   display: flex;
   flex-direction: column;
   gap: var(--sp-2);
+}
+.tlist__more {
+  align-self: center;
+  padding: var(--sp-2) var(--sp-4);
+  border-radius: var(--r-full);
+  border: 1px solid var(--c-border);
+  font-size: var(--fs-sm);
+  color: var(--c-text-2);
+}
+.tlist__more:hover {
+  background: var(--c-surface-alt);
+  color: var(--c-text);
 }
 </style>
