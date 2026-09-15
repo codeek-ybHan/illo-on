@@ -85,4 +85,17 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown))
   margin: 0 auto;
   padding: var(--sp-6) var(--sp-6) var(--sp-8);
 }
+
+@media (max-width: 640px) {
+  .layout {
+    padding: 0;
+  }
+  .layout__shell {
+    border-radius: 0;
+    border: none;
+  }
+  .layout__content-inner {
+    padding: var(--sp-4) var(--sp-4) calc(var(--sp-7) + var(--rail-h-m));
+  }
+}
 </style>

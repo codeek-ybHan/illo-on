@@ -238,4 +238,14 @@ onBeforeUnmount(() => {
 .nmenu__spacer {
   flex: 1;
 }
+
+@media (max-width: 640px) {
+  .nmenu__pop {
+    position: fixed;
+    left: var(--sp-3);
+    right: var(--sp-3);
+    top: calc(var(--header-h) + 6px);
+    width: auto;
+  }
+}
 </style>

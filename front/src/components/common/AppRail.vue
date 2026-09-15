@@ -43,7 +43,7 @@ function logout() {
       </ul>
     </div>
 
-    <div class="rail__group">
+    <div class="rail__group rail__group--settings">
       <span class="rail__caption">계정</span>
       <ul>
         <li>
@@ -214,5 +214,44 @@ function logout() {
 }
 .account-pop__logout:hover {
   background: var(--c-border);
+}
+
+@media (max-width: 640px) {
+  .rail {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 40;
+    width: 100%;
+    height: var(--rail-h-m);
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--sp-2);
+    padding: 0 var(--sp-3);
+    border-right: none;
+    border-top: 1px solid var(--c-border);
+    background: var(--c-shell);
+  }
+  .rail__logo,
+  .rail__group--settings,
+  .rail__spacer,
+  .rail__tooltip {
+    display: none;
+  }
+  .rail__group {
+    width: auto;
+    flex-direction: row;
+  }
+  .rail__group ul {
+    flex-direction: row;
+    gap: var(--sp-1);
+  }
+  .account-pop {
+    left: auto;
+    right: 0;
+    bottom: calc(100% + 10px);
+  }
 }
 </style>

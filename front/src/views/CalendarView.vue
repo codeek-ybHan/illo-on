@@ -324,4 +324,15 @@ function timeOf(iso) {
     grid-template-columns: 1fr;
   }
 }
+@media (max-width: 640px) {
+  .cal {
+    gap: 4px;
+  }
+  .cal__day {
+    padding: 4px;
+  }
+  .cal__num {
+    font-size: 11px;
+  }
+}
 </style>

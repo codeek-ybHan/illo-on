@@ -185,7 +185,7 @@ async function onSubmit() {
         <textarea v-model="form.description" class="tform__textarea" rows="3" />
       </label>
 
-      <div class="tform__row">
+      <div class="tform__row u-form-row">
         <BaseSelect
           v-model="form.assigneeId"
           label="담당자"
@@ -200,7 +200,7 @@ async function onSubmit() {
         />
       </div>
 
-      <div class="tform__row">
+      <div class="tform__row u-form-row">
         <BaseSelect v-model="form.priority" label="우선순위" :options="PRIORITY_OPTIONS" />
         <BaseSelect
           v-model="form.sprintId"
@@ -264,10 +264,5 @@ async function onSubmit() {
 .tform__textarea:focus {
   outline: none;
   border-color: var(--c-primary);
-}
-.tform__row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--sp-3);
 }
 </style>

@@ -434,4 +434,14 @@ function ask(prompt) {
 .ai__send:disabled {
   opacity: 0.4;
 }
+
+@media (max-width: 640px) {
+  .ai {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    width: 100%;
+    border-left: none;
+  }
+}
 </style>

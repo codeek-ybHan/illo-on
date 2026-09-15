@@ -296,4 +296,9 @@ async function handleStatusChange(task, status) {
     grid-template-columns: 1fr 1fr;
   }
 }
+@media (max-width: 640px) {
+  .grid-3 {
+    grid-template-columns: 1fr;
+  }
+}
 </style>

@@ -67,12 +67,20 @@ const crumbs = computed(() => route.meta.breadcrumb || [route.meta.title || '일
   display: flex;
   align-items: center;
   gap: var(--sp-2);
+  min-width: 0;
+  overflow: hidden;
   font-size: var(--fs-sm);
   color: var(--c-text-muted);
 }
 .header__sep {
   display: inline-flex;
+  flex-shrink: 0;
   color: var(--c-text-muted);
+}
+.header__crumb {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .header__crumb.is-current {
   color: var(--c-text);
@@ -81,6 +89,7 @@ const crumbs = computed(() => route.meta.breadcrumb || [route.meta.title || '일
 .header__actions {
   display: flex;
   align-items: center;
+  flex-shrink: 0;
   gap: var(--sp-2);
 }
 .header__icon-btn {
@@ -100,5 +109,11 @@ const crumbs = computed(() => route.meta.breadcrumb || [route.meta.title || '일
 }
 .header__icon-btn--accent {
   color: var(--c-accent);
+}
+
+@media (max-width: 640px) {
+  .header {
+    padding: 0 var(--sp-3);
+  }
 }
 </style>

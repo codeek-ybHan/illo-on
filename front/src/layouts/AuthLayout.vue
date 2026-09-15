@@ -39,4 +39,13 @@ import BrandLogo from '@/components/common/BrandLogo.vue'
   font-size: var(--fs-sm);
   color: var(--c-text-muted);
 }
+
+@media (max-width: 640px) {
+  .auth {
+    padding: var(--sp-4);
+  }
+  .auth__card {
+    padding: var(--sp-5);
+  }
+}
 </style>

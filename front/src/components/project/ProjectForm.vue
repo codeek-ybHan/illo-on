@@ -96,7 +96,7 @@ async function onSubmit() {
         <textarea v-model="form.description" class="pform__textarea" rows="3" />
       </label>
 
-      <div class="pform__row">
+      <div class="pform__row u-form-row">
         <BaseDatePicker v-model="form.startDate" label="시작일" placeholder="시작일 선택" />
         <BaseDatePicker
           v-model="form.endDate"
@@ -151,10 +151,5 @@ async function onSubmit() {
 .pform__textarea:focus {
   outline: none;
   border-color: var(--c-primary);
-}
-.pform__row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--sp-3);
 }
 </style>

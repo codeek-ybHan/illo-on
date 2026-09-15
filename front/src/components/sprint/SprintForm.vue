@@ -79,7 +79,7 @@ async function onSubmit() {
     <form class="sform" @submit.prevent="onSubmit">
       <p v-if="formError" class="sform__error">{{ formError }}</p>
       <BaseInput v-model="form.name" label="Sprint 이름" required :error="errors.name" />
-      <div class="sform__row">
+      <div class="sform__row u-form-row">
         <BaseDatePicker v-model="form.startDate" label="시작일" placeholder="시작일 선택" />
         <BaseDatePicker
           v-model="form.endDate"
@@ -111,10 +111,5 @@ async function onSubmit() {
   background: var(--c-peach);
   color: var(--c-danger);
   font-size: var(--fs-sm);
-}
-.sform__row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--sp-3);
 }
 </style>
