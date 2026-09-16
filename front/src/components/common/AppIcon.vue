@@ -25,6 +25,8 @@ const PATHS = {
   paperclip:
     '<path d="M20 11.5 12 19a5 5 0 0 1-7-7l8-8a3.5 3.5 0 0 1 5 5l-8 8a2 2 0 0 1-3-3l7-7"/>',
   arrowUp: '<path d="M12 19V5M6 11l6-6 6 6"/>',
+  thumbsUp:
+    '<path d="M14 9V5a3 3 0 0 0-3-3L7 11v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3z"/><path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/>',
   // 토글 스위치가 ON 으로 켜진 모양 + 빛 발산 — 일로ON 심볼
   logo: '<rect x="1.75" y="6" width="15" height="12" rx="6"/><circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/><path d="M17.8 5.4 20.2 2.7"/><path d="M19 8.7 22.4 7.2"/><path d="M19.1 12 22.9 12"/>',
 }

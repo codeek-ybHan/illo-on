@@ -145,7 +145,7 @@ async function toggleLike(f) {
                 :class="{ 'is-liked': f.likedByMe }"
                 @click="toggleLike(f)"
               >
-                <span>{{ f.likedByMe ? '❤️' : '🤍' }}</span>
+                <AppIcon name="thumbsUp" :size="14" />
                 <span v-if="f.likeCount">{{ f.likeCount }}</span>
               </button>
             </div>
@@ -318,8 +318,9 @@ async function toggleLike(f) {
   border-bottom-right-radius: var(--r-sm);
 }
 .fb__msg--admin .fb__bubble {
-  background: var(--c-primary);
-  color: var(--c-primary-contrast);
+  /* 라이트/다크 테마와 무관하게 관리자 메시지는 항상 검정 말풍선으로 고정 */
+  background: #1a1c1f;
+  color: #fcfcfd;
   border-bottom-left-radius: var(--r-sm);
   border-bottom-right-radius: var(--r-md);
 }
@@ -337,18 +338,24 @@ async function toggleLike(f) {
 .fb__like {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: 3px;
   flex-shrink: 0;
-  padding: 2px 4px;
+  padding: 3px 6px;
   border-radius: var(--r-full);
   font-size: var(--fs-xs);
+  font-weight: 600;
   color: var(--c-text-muted);
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
 }
 .fb__like:hover {
   background: var(--c-surface-alt);
+  color: var(--c-text);
 }
 .fb__like.is-liked {
-  color: var(--c-danger);
+  color: var(--c-primary);
+  background: var(--c-accent-soft);
 }
 .fb__meta {
   display: flex;
