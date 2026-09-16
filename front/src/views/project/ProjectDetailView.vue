@@ -13,7 +13,7 @@ import BaseModal from '@/components/common/BaseModal.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import AppIcon from '@/components/common/AppIcon.vue'
 import ProjectForm from '@/components/project/ProjectForm.vue'
-import MemberEditForm from '@/components/project/MemberEditForm.vue'
+import MemberRolesForm from '@/components/project/MemberRolesForm.vue'
 import TaskList from '@/components/task/TaskList.vue'
 import TaskForm from '@/components/task/TaskForm.vue'
 import SprintPanel from '@/components/sprint/SprintPanel.vue'
@@ -40,8 +40,7 @@ const showEdit = ref(false)
 const showDelete = ref(false)
 const deleting = ref(false)
 
-const showMemberEdit = ref(false)
-const editingMember = ref(null)
+const showMemberRoles = ref(false)
 
 const invite = ref(null)
 const inviting = ref(false)
@@ -89,13 +88,12 @@ async function handleEdit(payload) {
   toast().success('프로젝트를 저장했습니다.')
 }
 
-function openMemberEdit(member) {
-  editingMember.value = member
-  showMemberEdit.value = true
-}
-
-async function handleMemberEdit(payload) {
-  await store.updateMember(route.params.id, editingMember.value.userId, payload)
+async function handleMemberRolesSave(changes) {
+  await Promise.all(
+    changes.map(({ userId, jobTitle }) =>
+      store.updateMember(route.params.id, userId, { jobTitle }),
+    ),
+  )
   toast().success('직급/역할을 저장했습니다.')
 }
 
@@ -179,15 +177,14 @@ async function copyInvite() {
         <BaseCard>
           <template #header>
             <span>멤버 {{ members.length }}</span>
-            <BaseButton
-              v-if="isAdmin"
-              variant="soft"
-              size="sm"
-              :disabled="inviting"
-              @click="generateInvite"
-            >
-              {{ inviting ? '생성 중…' : '초대 링크 생성' }}
-            </BaseButton>
+            <div v-if="isAdmin" class="member-actions">
+              <BaseButton variant="ghost" size="sm" @click="showMemberRoles = true">
+                직급/역할 설정
+              </BaseButton>
+              <BaseButton variant="soft" size="sm" :disabled="inviting" @click="generateInvite">
+                {{ inviting ? '생성 중…' : '초대 링크 생성' }}
+              </BaseButton>
+            </div>
           </template>
 
           <p v-if="inviteError" class="detail-error">{{ inviteError }}</p>
@@ -215,9 +212,6 @@ async function copyInvite() {
               <span class="member__role" :class="{ 'is-admin': m.role === 'ADMIN' }">
                 {{ m.role === 'ADMIN' ? '관리자' : '멤버' }}
               </span>
-              <BaseButton v-if="isAdmin" variant="ghost" size="sm" @click="openMemberEdit(m)">
-                수정
-              </BaseButton>
             </li>
           </ul>
         </BaseCard>
@@ -270,10 +264,10 @@ async function copyInvite() {
 
   <ProjectForm v-if="current" v-model:open="showEdit" :project="current" :submit-fn="handleEdit" />
 
-  <MemberEditForm
-    v-model:open="showMemberEdit"
-    :member="editingMember"
-    :submit-fn="handleMemberEdit"
+  <MemberRolesForm
+    v-model:open="showMemberRoles"
+    :members="members"
+    :submit-fn="handleMemberRolesSave"
   />
 
   <TaskForm
@@ -398,6 +392,11 @@ async function copyInvite() {
   margin-bottom: var(--sp-4);
   font-size: var(--fs-xs);
   color: var(--c-text-muted);
+}
+.member-actions {
+  display: flex;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
 }
 .members {
   display: flex;
