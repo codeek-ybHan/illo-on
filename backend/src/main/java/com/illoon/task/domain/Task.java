@@ -72,6 +72,11 @@ public class Task extends BaseTimeEntity {
         this.sprintId = sprintId;
     }
 
+    /** 담당자 계정이 삭제되었을 때 배정 해제 */
+    public void unassign() {
+        this.assigneeId = null;
+    }
+
     /** PUT — 전체 교체 (기획서 §11-4, 별도 status API 없음) */
     public void update(String title, String description, Long assigneeId, LocalDateTime dueDate,
                        TaskPriority priority, TaskStatus status, Long sprintId, Long meetingId) {

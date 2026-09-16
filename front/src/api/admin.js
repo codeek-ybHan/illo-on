@@ -9,3 +9,8 @@ export function fetchAdminUsers() {
 export function fetchAdminStats() {
   return http.get('/admin/stats').then((res) => res.data)
 }
+
+/** 사용자 완전 삭제 (관리자 전용, 자기 자신 삭제 불가) */
+export function deleteAdminUser(userId) {
+  return http.delete(`/admin/users/${userId}`)
+}

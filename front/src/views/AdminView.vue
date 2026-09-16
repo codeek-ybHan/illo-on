@@ -1,15 +1,25 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { fetchAdminUsers, fetchAdminStats } from '@/api/admin'
+import { fetchAdminUsers, fetchAdminStats, deleteAdminUser } from '@/api/admin'
+import { useAuthStore } from '@/stores/auth'
 import PagePlaceholder from '@/components/common/PagePlaceholder.vue'
 import BaseCard from '@/components/common/BaseCard.vue'
+import BaseButton from '@/components/common/BaseButton.vue'
+import BaseModal from '@/components/common/BaseModal.vue'
 import StatCard from '@/components/common/StatCard.vue'
 import { formatDate } from '@/utils/date'
+import { toast } from '@/utils/toast'
+
+const auth = useAuthStore()
 
 const loading = ref(true)
 const error = ref('')
 const stats = ref(null)
 const users = ref([])
+
+const showDelete = ref(false)
+const deleteTarget = ref(null)
+const deleting = ref(false)
 
 onMounted(async () => {
   try {
@@ -22,6 +32,26 @@ onMounted(async () => {
     loading.value = false
   }
 })
+
+function openDelete(user) {
+  deleteTarget.value = user
+  showDelete.value = true
+}
+
+async function confirmDelete() {
+  deleting.value = true
+  try {
+    await deleteAdminUser(deleteTarget.value.userId)
+    users.value = users.value.filter((u) => u.userId !== deleteTarget.value.userId)
+    if (stats.value) stats.value.totalUsers -= 1
+    toast().success('사용자를 삭제했습니다.')
+    showDelete.value = false
+  } catch (e) {
+    toast().error(e.normalizedMessage || '삭제에 실패했습니다.')
+  } finally {
+    deleting.value = false
+  }
+}
 </script>
 
 <template>
@@ -69,6 +99,7 @@ onMounted(async () => {
               <th>이메일</th>
               <th>가입일</th>
               <th>권한</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -81,12 +112,39 @@ onMounted(async () => {
                   {{ u.isAdmin ? '관리자' : '-' }}
                 </span>
               </td>
+              <td class="admin-table__actions">
+                <BaseButton
+                  v-if="u.userId !== auth.user?.userId"
+                  variant="ghost"
+                  size="sm"
+                  @click="openDelete(u)"
+                >
+                  삭제
+                </BaseButton>
+              </td>
             </tr>
           </tbody>
         </table>
       </BaseCard>
     </template>
   </PagePlaceholder>
+
+  <BaseModal v-model:open="showDelete" title="사용자 삭제" size="sm">
+    <p>
+      <strong>{{ deleteTarget?.name }}</strong>({{ deleteTarget?.email }}) 계정을 완전히
+      삭제할까요?
+    </p>
+    <p class="admin-delete-warning">
+      되돌릴 수 없습니다. 참여 중인 프로젝트에서 제외되고, 배정된 Task는 미지정으로 바뀝니다.
+      해당 사용자가 만든 프로젝트·Task·회의·피드백 자체는 삭제되지 않습니다.
+    </p>
+    <template #footer>
+      <BaseButton variant="ghost" size="sm" @click="showDelete = false">취소</BaseButton>
+      <BaseButton variant="primary" size="sm" :disabled="deleting" @click="confirmDelete">
+        {{ deleting ? '삭제 중…' : '삭제' }}
+      </BaseButton>
+    </template>
+  </BaseModal>
 </template>
 
 <style scoped>
@@ -133,6 +191,14 @@ onMounted(async () => {
   background: var(--c-mint);
   color: var(--c-mint-ink);
   font-weight: 600;
+}
+.admin-table__actions {
+  text-align: right;
+}
+.admin-delete-warning {
+  margin-top: var(--sp-2);
+  font-size: var(--fs-sm);
+  color: var(--c-text-muted);
 }
 
 @media (max-width: 1080px) {

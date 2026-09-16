@@ -5,10 +5,9 @@ import com.illoon.admin.dto.AdminUserResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -30,5 +29,12 @@ public class AdminController {
     @GetMapping("/stats")
     public AdminStatsResponse stats(@AuthenticationPrincipal Long userId) {
         return adminService.getStats(userId);
+    }
+
+    @Operation(summary = "사용자 완전 삭제 (관리자 전용, 자기 자신 삭제 불가)")
+    @DeleteMapping("/users/{targetUserId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteUser(@AuthenticationPrincipal Long userId, @PathVariable Long targetUserId) {
+        adminService.deleteUser(userId, targetUserId);
     }
 }
