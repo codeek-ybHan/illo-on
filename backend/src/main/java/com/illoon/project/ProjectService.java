@@ -102,9 +102,21 @@ public class ProjectService {
                         members.stream().map(ProjectMember::getUserId).toList())
                 .stream().collect(Collectors.toMap(User::getId, Function.identity()));
         return members.stream()
-                .map(m -> MemberResponse.of(users.get(m.getUserId()), m.getRole()))
+                .map(m -> MemberResponse.of(users.get(m.getUserId()), m))
                 .sorted(Comparator.comparing(MemberResponse::role)) // ADMIN 먼저
                 .toList();
+    }
+
+    @Transactional
+    public MemberResponse updateMemberJobTitle(
+            Long projectId, Long targetUserId, Long requesterId, String jobTitle) {
+        requireAdmin(projectId, requesterId);
+        ProjectMember member = memberRepository.findByIdProjectIdAndIdUserId(projectId, targetUserId)
+                .orElseThrow(() -> new ApiException(ErrorCode.NOT_PROJECT_MEMBER));
+        member.updateJobTitle(jobTitle);
+        User user = userRepository.findById(targetUserId)
+                .orElseThrow(() -> new ApiException(ErrorCode.NOT_PROJECT_MEMBER));
+        return MemberResponse.of(user, member);
     }
 
     // ---------- Invite ----------

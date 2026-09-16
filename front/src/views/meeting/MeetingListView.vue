@@ -112,6 +112,7 @@ async function handleCreate(payload, projectId) {
 }
 .filter-bar {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--sp-2);
 }
 .filter {

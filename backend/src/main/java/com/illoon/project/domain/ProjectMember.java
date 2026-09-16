@@ -25,10 +25,18 @@ public class ProjectMember {
     @Column(nullable = false, length = 10)
     private MemberRole role;
 
+    /** 팀 내 직급/역할 (예: "팀장", "선임 개발자") — 자유 텍스트, 프로젝트 내 권한(role)과 무관. */
+    @Column(name = "job_title", length = 50)
+    private String jobTitle;
+
     @Builder
     private ProjectMember(Long projectId, Long userId, MemberRole role) {
         this.id = new Pk(projectId, userId);
         this.role = role;
+    }
+
+    public void updateJobTitle(String jobTitle) {
+        this.jobTitle = jobTitle;
     }
 
     public Long getProjectId() {

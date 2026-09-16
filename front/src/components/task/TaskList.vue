@@ -81,6 +81,7 @@ const hiddenCount = computed(() => filtered.value.length - props.maxItems)
 }
 .tlist__filters {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--sp-2);
 }
 .tlist__filter {

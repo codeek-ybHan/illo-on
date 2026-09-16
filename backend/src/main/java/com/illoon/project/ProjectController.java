@@ -63,6 +63,15 @@ public class ProjectController {
         return projectService.listMembers(projectId, userId);
     }
 
+    @Operation(summary = "멤버 직급/역할 수정 (ADMIN)")
+    @PatchMapping("/{projectId}/members/{targetUserId}")
+    public MemberResponse updateMember(@AuthenticationPrincipal Long userId,
+                                       @PathVariable Long projectId,
+                                       @PathVariable Long targetUserId,
+                                       @Valid @RequestBody MemberUpdateRequest request) {
+        return projectService.updateMemberJobTitle(projectId, targetUserId, userId, request.jobTitle());
+    }
+
     @Operation(summary = "초대 링크 생성 (ADMIN)")
     @PostMapping("/{projectId}/invites")
     @ResponseStatus(HttpStatus.CREATED)

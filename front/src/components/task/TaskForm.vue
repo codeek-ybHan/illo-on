@@ -83,7 +83,10 @@ const STATUS_OPTIONS = [
 ]
 const assigneeOptions = computed(() => [
   { label: '미지정', value: '' },
-  ...resolvedMembers.value.map((m) => ({ label: m.name, value: String(m.userId) })),
+  ...resolvedMembers.value.map((m) => ({
+    label: m.jobTitle ? `${m.name} · ${m.jobTitle}` : m.name,
+    value: String(m.userId),
+  })),
 ])
 
 const form = reactive({

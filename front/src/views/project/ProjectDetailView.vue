@@ -13,6 +13,7 @@ import BaseModal from '@/components/common/BaseModal.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import AppIcon from '@/components/common/AppIcon.vue'
 import ProjectForm from '@/components/project/ProjectForm.vue'
+import MemberEditForm from '@/components/project/MemberEditForm.vue'
 import TaskList from '@/components/task/TaskList.vue'
 import TaskForm from '@/components/task/TaskForm.vue'
 import SprintPanel from '@/components/sprint/SprintPanel.vue'
@@ -38,6 +39,9 @@ const showMeetingCreate = ref(false)
 const showEdit = ref(false)
 const showDelete = ref(false)
 const deleting = ref(false)
+
+const showMemberEdit = ref(false)
+const editingMember = ref(null)
 
 const invite = ref(null)
 const inviting = ref(false)
@@ -83,6 +87,16 @@ function handleStatusChange(task, status) {
 async function handleEdit(payload) {
   await store.updateProject(route.params.id, payload)
   toast().success('프로젝트를 저장했습니다.')
+}
+
+function openMemberEdit(member) {
+  editingMember.value = member
+  showMemberEdit.value = true
+}
+
+async function handleMemberEdit(payload) {
+  await store.updateMember(route.params.id, editingMember.value.userId, payload)
+  toast().success('직급/역할을 저장했습니다.')
 }
 
 async function handleDelete() {
@@ -192,12 +206,18 @@ async function copyInvite() {
             <li v-for="m in members" :key="m.userId" class="member">
               <span class="member__avatar">{{ m.name?.charAt(0) || '?' }}</span>
               <span class="member__info">
-                <span class="member__name">{{ m.name }}</span>
+                <span class="member__name">
+                  {{ m.name }}
+                  <span v-if="m.jobTitle" class="member__job">· {{ m.jobTitle }}</span>
+                </span>
                 <span class="member__email">{{ m.email }}</span>
               </span>
               <span class="member__role" :class="{ 'is-admin': m.role === 'ADMIN' }">
                 {{ m.role === 'ADMIN' ? '관리자' : '멤버' }}
               </span>
+              <BaseButton v-if="isAdmin" variant="ghost" size="sm" @click="openMemberEdit(m)">
+                수정
+              </BaseButton>
             </li>
           </ul>
         </BaseCard>
@@ -249,6 +269,12 @@ async function copyInvite() {
   </PagePlaceholder>
 
   <ProjectForm v-if="current" v-model:open="showEdit" :project="current" :submit-fn="handleEdit" />
+
+  <MemberEditForm
+    v-model:open="showMemberEdit"
+    :member="editingMember"
+    :submit-fn="handleMemberEdit"
+  />
 
   <TaskForm
     v-if="current"
@@ -338,6 +364,7 @@ async function copyInvite() {
   display: flex;
   gap: var(--sp-1);
   border-bottom: 1px solid var(--c-border);
+  overflow-x: auto;
 }
 .tab {
   padding: var(--sp-3) var(--sp-4);
@@ -345,6 +372,8 @@ async function copyInvite() {
   color: var(--c-text-2);
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 .tab.is-active {
   color: var(--c-text);
@@ -397,6 +426,7 @@ async function copyInvite() {
 }
 .member__info {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
 }
@@ -404,9 +434,14 @@ async function copyInvite() {
   font-size: var(--fs-sm);
   font-weight: 500;
 }
+.member__job {
+  font-weight: 400;
+  color: var(--c-text-muted);
+}
 .member__email {
   font-size: var(--fs-xs);
   color: var(--c-text-muted);
+  overflow-wrap: anywhere;
 }
 .member__role {
   font-size: var(--fs-xs);
@@ -415,5 +450,18 @@ async function copyInvite() {
 .member__role.is-admin {
   color: var(--c-accent);
   font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  :deep(.page__head) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  :deep(.page__actions) {
+    justify-content: flex-end;
+  }
+  .member {
+    flex-wrap: wrap;
+  }
 }
 </style>

@@ -255,4 +255,15 @@ async function handleDelete() {
     grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 640px) {
+  :deep(.page__head) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  :deep(.page__actions) {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+}
 </style>

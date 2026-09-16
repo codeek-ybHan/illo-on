@@ -60,6 +60,12 @@ export const useProjectStore = defineStore('project', () => {
     return members.value
   }
 
+  async function updateMember(projectId, userId, payload) {
+    const updated = await api.updateMember(projectId, userId, payload)
+    members.value = members.value.map((m) => (m.userId === updated.userId ? updated : m))
+    return updated
+  }
+
   return {
     projects,
     current,
@@ -72,5 +78,6 @@ export const useProjectStore = defineStore('project', () => {
     updateProject,
     deleteProject,
     fetchMembers,
+    updateMember,
   }
 })

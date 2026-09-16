@@ -30,6 +30,11 @@ export function fetchMembers(projectId) {
   return http.get(`/projects/${projectId}/members`).then((res) => res.data)
 }
 
+/** 멤버 직급/역할 수정 (ADMIN) — { jobTitle } */
+export function updateMember(projectId, userId, payload) {
+  return http.patch(`/projects/${projectId}/members/${userId}`, payload).then((res) => res.data)
+}
+
 /** 초대 링크 생성 (ADMIN) — { token, inviteUrl, expiresAt } */
 export function createInvite(projectId) {
   return http.post(`/projects/${projectId}/invites`).then((res) => res.data)

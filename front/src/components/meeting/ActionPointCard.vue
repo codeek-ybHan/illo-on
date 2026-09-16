@@ -23,7 +23,10 @@ const userTouchedAssignee = ref(false)
 
 const assigneeOptions = computed(() => [
   { label: '미지정', value: '' },
-  ...props.members.map((m) => ({ label: m.name, value: String(m.userId) })),
+  ...props.members.map((m) => ({
+    label: m.jobTitle ? `${m.name} · ${m.jobTitle}` : m.name,
+    value: String(m.userId),
+  })),
 ])
 
 /** AI가 추정한 이름 → 멤버 매칭 (공백 제거, 부분 일치 허용) */
