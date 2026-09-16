@@ -2,7 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 
 import DefaultLayout from '@/layouts/DefaultLayout.vue'
 import AuthLayout from '@/layouts/AuthLayout.vue'
-import { getToken } from '@/utils/token'
+import { getToken, getStoredUser } from '@/utils/token'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -71,6 +71,12 @@ const router = createRouter({
           component: () => import('@/views/SettingsView.vue'),
           meta: { title: '설정', breadcrumb: ['설정'] },
         },
+        {
+          path: 'admin',
+          name: 'admin',
+          component: () => import('@/views/AdminView.vue'),
+          meta: { title: '관리자', breadcrumb: ['관리자'], requiresAdmin: true },
+        },
       ],
     },
     {
@@ -114,6 +120,9 @@ router.beforeEach((to) => {
   }
   if (!authed) {
     return { name: 'login', query: { redirect: to.fullPath } }
+  }
+  if (to.meta.requiresAdmin && !getStoredUser()?.isAdmin) {
+    return { name: 'mainboard' }
   }
   return true
 })

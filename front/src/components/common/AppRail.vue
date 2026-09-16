@@ -79,6 +79,14 @@ function logout() {
       <div v-if="accountOpen" class="account-pop">
         <p class="account-pop__name">{{ auth.user?.name || '사용자' }}</p>
         <p class="account-pop__email">{{ auth.user?.email }}</p>
+        <RouterLink
+          v-if="auth.user?.isAdmin"
+          :to="{ name: 'admin' }"
+          class="account-pop__admin-link"
+          @click="accountOpen = false"
+        >
+          관리자 페이지
+        </RouterLink>
         <button class="account-pop__logout" type="button" @click="logout">로그아웃</button>
       </div>
       <div v-if="accountOpen" class="rail__backdrop" @click="accountOpen = false" />
@@ -211,8 +219,25 @@ function logout() {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.account-pop__logout {
+.account-pop__admin-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin-top: var(--sp-3);
+  width: 100%;
+  height: 34px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--c-border);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--c-text-2);
+}
+.account-pop__admin-link:hover {
+  background: var(--c-surface-alt);
+  color: var(--c-text);
+}
+.account-pop__logout {
+  margin-top: var(--sp-2);
   width: 100%;
   height: 34px;
   border-radius: var(--r-sm);
