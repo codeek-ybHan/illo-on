@@ -37,5 +37,16 @@ export const useFeedbackStore = defineStore('feedback', () => {
     return updated
   }
 
-  return { items, loading, error, fetchAll, send, resolve, toggleLike }
+  async function update(feedbackId, content) {
+    const updated = await api.updateFeedback(feedbackId, content)
+    items.value = items.value.map((f) => (f.feedbackId === updated.feedbackId ? updated : f))
+    return updated
+  }
+
+  async function remove(feedbackId) {
+    await api.deleteFeedback(feedbackId)
+    items.value = items.value.filter((f) => f.feedbackId !== feedbackId)
+  }
+
+  return { items, loading, error, fetchAll, send, resolve, toggleLike, update, remove }
 })

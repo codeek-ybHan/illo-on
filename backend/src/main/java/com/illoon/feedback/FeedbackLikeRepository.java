@@ -14,4 +14,6 @@ public interface FeedbackLikeRepository extends JpaRepository<FeedbackLike, Feed
     long countByIdFeedbackId(Long feedbackId);
 
     List<FeedbackLike> findAllByIdFeedbackIdIn(Collection<Long> feedbackIds);
+
+    void deleteAllByIdFeedbackId(Long feedbackId);
 }

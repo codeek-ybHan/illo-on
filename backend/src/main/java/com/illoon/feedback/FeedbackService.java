@@ -47,6 +47,7 @@ public class FeedbackService {
                 .map(f -> FeedbackResponse.of(
                         f,
                         Boolean.TRUE.equals(authorIsAdminByUserId.get(f.getUserId())),
+                        f.getUserId().equals(viewerId),
                         likeCounts.getOrDefault(f.getId(), 0L),
                         likedByViewer.contains(f.getId())))
                 .toList();
@@ -60,7 +61,28 @@ public class FeedbackService {
         Feedback feedback = feedbackRepository.save(
                 Feedback.builder().userId(userId).content(content).replyToId(replyToId).build());
         boolean authorIsAdmin = userRepository.findById(userId).map(User::isAdmin).orElse(false);
-        return FeedbackResponse.of(feedback, authorIsAdmin, 0, false);
+        return FeedbackResponse.of(feedback, authorIsAdmin, true, 0, false);
+    }
+
+    /** 본인이 쓴 피드백만 내용 수정 가능. */
+    @Transactional
+    public FeedbackResponse update(Long feedbackId, Long requesterId, String content) {
+        Feedback feedback = findFeedback(feedbackId);
+        if (!feedback.getUserId().equals(requesterId)) {
+            throw new ApiException(ErrorCode.FORBIDDEN);
+        }
+        feedback.updateContent(content);
+        boolean authorIsAdmin = userRepository.findById(requesterId).map(User::isAdmin).orElse(false);
+        return toResponse(feedback, requesterId, authorIsAdmin);
+    }
+
+    /** 관리자만 삭제 가능 (작성자 무관). */
+    @Transactional
+    public void delete(Long feedbackId, Long requesterId) {
+        requireAdmin(requesterId);
+        Feedback feedback = findFeedback(feedbackId);
+        feedbackLikeRepository.deleteAllByIdFeedbackId(feedbackId);
+        feedbackRepository.delete(feedback);
     }
 
     @Transactional
@@ -87,14 +109,16 @@ public class FeedbackService {
         }
         long likeCount = feedbackLikeRepository.countByIdFeedbackId(feedbackId);
         boolean likedByMe = existing.isEmpty();
-        return FeedbackResponse.of(feedback, authorIsAdmin, likeCount, likedByMe);
+        return FeedbackResponse.of(
+                feedback, authorIsAdmin, feedback.getUserId().equals(userId), likeCount, likedByMe);
     }
 
     private FeedbackResponse toResponse(Feedback feedback, Long viewerId, boolean authorIsAdmin) {
         long likeCount = feedbackLikeRepository.countByIdFeedbackId(feedback.getId());
         boolean likedByMe = feedbackLikeRepository
                 .findByIdFeedbackIdAndIdUserId(feedback.getId(), viewerId).isPresent();
-        return FeedbackResponse.of(feedback, authorIsAdmin, likeCount, likedByMe);
+        return FeedbackResponse.of(
+                feedback, authorIsAdmin, feedback.getUserId().equals(viewerId), likeCount, likedByMe);
     }
 
     private User requireAdmin(Long userId) {

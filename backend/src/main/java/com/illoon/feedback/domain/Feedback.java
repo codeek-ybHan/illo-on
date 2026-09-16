@@ -51,4 +51,8 @@ public class Feedback extends BaseTimeEntity {
         this.resolved = resolved;
         this.resolvedAt = resolved ? LocalDateTime.now() : null;
     }
+
+    public void updateContent(String content) {
+        this.content = content;
+    }
 }

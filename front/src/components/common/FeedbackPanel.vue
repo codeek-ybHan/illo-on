@@ -2,6 +2,8 @@
 import { ref, nextTick, watch, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import AppIcon from './AppIcon.vue'
+import BaseModal from './BaseModal.vue'
+import BaseButton from './BaseButton.vue'
 import { useFeedbackStore } from '@/stores/feedback'
 import { useAuthStore } from '@/stores/auth'
 import { formatTime } from '@/utils/date'
@@ -19,6 +21,10 @@ const draft = ref('')
 const sending = ref(false)
 const scrollEl = ref(null)
 const replyingTo = ref(null)
+const editingId = ref(null)
+const editDraft = ref('')
+const savingEdit = ref(false)
+const deleteTarget = ref(null)
 
 async function scrollToBottom() {
   await nextTick()
@@ -101,6 +107,41 @@ async function toggleLike(f) {
     toast().error(e.normalizedMessage || '처리에 실패했습니다.')
   }
 }
+
+function startEdit(f) {
+  editingId.value = f.feedbackId
+  editDraft.value = f.content
+}
+
+function cancelEdit() {
+  editingId.value = null
+  editDraft.value = ''
+}
+
+async function saveEdit(f) {
+  const text = editDraft.value.trim()
+  if (!text) return
+  savingEdit.value = true
+  try {
+    await feedback.update(f.feedbackId, text)
+    editingId.value = null
+  } catch (e) {
+    toast().error(e.normalizedMessage || '수정에 실패했습니다.')
+  } finally {
+    savingEdit.value = false
+  }
+}
+
+async function confirmDelete() {
+  const target = deleteTarget.value
+  if (!target) return
+  try {
+    await feedback.remove(target.feedbackId)
+    deleteTarget.value = null
+  } catch (e) {
+    toast().error(e.normalizedMessage || '삭제에 실패했습니다.')
+  }
+}
 </script>
 
 <template>
@@ -135,7 +176,22 @@ async function toggleLike(f) {
               <div v-if="replyTarget(f)" class="fb__quote">
                 {{ truncate(replyTarget(f).content) }}
               </div>
-              <div class="fb__bubble">{{ f.content }}</div>
+
+              <div v-if="editingId === f.feedbackId" class="fb__edit-box">
+                <textarea v-model="editDraft" class="fb__edit-input" rows="2" />
+                <div class="fb__edit-actions">
+                  <button type="button" @click="cancelEdit">취소</button>
+                  <button
+                    type="button"
+                    class="fb__edit-save"
+                    :disabled="savingEdit || !editDraft.trim()"
+                    @click="saveEdit(f)"
+                  >
+                    {{ savingEdit ? '저장 중…' : '저장' }}
+                  </button>
+                </div>
+              </div>
+              <div v-else class="fb__bubble">{{ f.content }}</div>
             </div>
             <div class="fb__side-actions">
               <span v-if="!f.resolved && !isAdmin" class="fb__pending">반영 전</span>
@@ -155,6 +211,9 @@ async function toggleLike(f) {
             <span>{{ formatTime(f.createdAt) }}</span>
             <span v-if="f.resolved" class="fb__resolved">✓ 반영완료</span>
             <button type="button" class="fb__reply-btn" @click="startReply(f)">답장</button>
+            <button v-if="f.isMine" type="button" class="fb__reply-btn" @click="startEdit(f)">
+              수정
+            </button>
             <button
               v-if="isAdmin"
               type="button"
@@ -162,6 +221,14 @@ async function toggleLike(f) {
               @click="toggleResolved(f)"
             >
               {{ f.resolved ? '반영완료 취소' : '반영완료로 표시' }}
+            </button>
+            <button
+              v-if="isAdmin"
+              type="button"
+              class="fb__delete-btn"
+              @click="deleteTarget = f"
+            >
+              삭제
             </button>
           </div>
         </div>
@@ -197,6 +264,19 @@ async function toggleLike(f) {
       </div>
     </footer>
   </aside>
+
+  <BaseModal
+    :open="!!deleteTarget"
+    title="피드백 삭제"
+    size="sm"
+    @update:open="(v) => !v && (deleteTarget = null)"
+  >
+    <p>이 피드백을 삭제할까요? 되돌릴 수 없습니다.</p>
+    <template #footer>
+      <BaseButton variant="ghost" size="sm" @click="deleteTarget = null">취소</BaseButton>
+      <BaseButton variant="primary" size="sm" @click="confirmDelete">삭제</BaseButton>
+    </template>
+  </BaseModal>
 </template>
 
 <style scoped>
@@ -384,6 +464,59 @@ async function toggleLike(f) {
 .fb__resolve-btn:hover {
   background: var(--c-surface-alt);
   color: var(--c-text);
+}
+.fb__delete-btn {
+  padding: 2px 8px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--c-border);
+  color: var(--c-danger);
+}
+.fb__delete-btn:hover {
+  background: var(--c-peach);
+}
+.fb__edit-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 200px;
+}
+.fb__edit-input {
+  padding: var(--sp-2);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  background: var(--c-surface);
+  resize: vertical;
+  font-family: inherit;
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+.fb__edit-input:focus {
+  outline: none;
+  border-color: var(--c-primary);
+}
+.fb__edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sp-2);
+  font-size: var(--fs-xs);
+}
+.fb__edit-actions button {
+  padding: 3px 10px;
+  border-radius: var(--r-full);
+  color: var(--c-text-2);
+}
+.fb__edit-actions button:hover {
+  background: var(--c-surface-alt);
+}
+.fb__edit-save {
+  background: var(--c-primary);
+  color: var(--c-primary-contrast);
+}
+.fb__edit-save:hover {
+  background: var(--c-primary-hover);
+}
+.fb__edit-save:disabled {
+  opacity: 0.4;
 }
 
 .fb__compose {

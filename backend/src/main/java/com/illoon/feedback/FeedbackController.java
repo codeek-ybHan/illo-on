@@ -3,6 +3,7 @@ package com.illoon.feedback;
 import com.illoon.feedback.dto.FeedbackCreateRequest;
 import com.illoon.feedback.dto.FeedbackResolveRequest;
 import com.illoon.feedback.dto.FeedbackResponse;
+import com.illoon.feedback.dto.FeedbackUpdateRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -33,6 +34,21 @@ public class FeedbackController {
     public FeedbackResponse create(@AuthenticationPrincipal Long userId,
                                    @Valid @RequestBody FeedbackCreateRequest request) {
         return feedbackService.create(userId, request.content(), request.replyToId());
+    }
+
+    @Operation(summary = "피드백 내용 수정 (작성자 본인만 가능)")
+    @PatchMapping("/{feedbackId}")
+    public FeedbackResponse update(@AuthenticationPrincipal Long userId,
+                                   @PathVariable Long feedbackId,
+                                   @Valid @RequestBody FeedbackUpdateRequest request) {
+        return feedbackService.update(feedbackId, userId, request.content());
+    }
+
+    @Operation(summary = "피드백 삭제 (관리자 계정만 가능)")
+    @DeleteMapping("/{feedbackId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@AuthenticationPrincipal Long userId, @PathVariable Long feedbackId) {
+        feedbackService.delete(feedbackId, userId);
     }
 
     @Operation(summary = "반영완료 토글 (관리자 계정만 가능)")
