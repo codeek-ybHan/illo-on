@@ -17,7 +17,7 @@ import {
  */
 export const useAuthStore = defineStore('auth', () => {
   const token = ref(getToken())
-  const user = ref(getStoredUser()) // { userId, name, email }
+  const user = ref(getStoredUser()) // { userId, name, email, isAdmin }
 
   const isAuthenticated = computed(() => Boolean(token.value))
 

@@ -7,16 +7,13 @@ import { useAuthStore } from '@/stores/auth'
 import { formatDateTime } from '@/utils/date'
 import { toast } from '@/utils/toast'
 
-/** 반영완료 처리 권한 노출용 — 실제 인가는 서버가 함(FeedbackService.ADMIN_EMAIL과 동일 값). */
-const ADMIN_EMAIL = 'mylovehyb12@gmail.com'
-
 defineEmits(['collapse'])
 
 const feedback = useFeedbackStore()
 const auth = useAuthStore()
 const { items, loading } = storeToRefs(feedback)
 
-const isAdmin = auth.user?.email === ADMIN_EMAIL
+const isAdmin = auth.user?.isAdmin ?? false
 
 const draft = ref('')
 const sending = ref(false)

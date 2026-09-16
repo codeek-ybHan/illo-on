@@ -6,6 +6,7 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.ColumnDefault;
 
 /**
  * 기획서 §10-1 USER. email 을 로그인 ID 로 사용하고 password 는 BCrypt 해시로 저장한다.
@@ -31,6 +32,11 @@ public class User extends BaseTimeEntity {
     @Column(nullable = false, length = 255)
     private String password;
 
+    /** 서비스 전역 관리자 여부. 최초 관리자는 AdminSeedRunner 가 기동 시 지정 이메일로 승격시킨다. */
+    @Column(nullable = false)
+    @ColumnDefault("false")
+    private boolean admin;
+
     @Builder
     private User(String name, String email, String password) {
         this.name = name;
@@ -45,5 +51,9 @@ public class User extends BaseTimeEntity {
 
     public void updatePassword(String encodedPassword) {
         this.password = encodedPassword;
+    }
+
+    public void grantAdmin() {
+        this.admin = true;
     }
 }

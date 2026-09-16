@@ -37,6 +37,9 @@ app:
     # mock: OpenAI 호출 없이 규칙 기반 브리핑 (키 없이 데모 가능)
     # openai: Spring AI + OpenAI (OPENAI_API_KEY 필요)
     provider: ${AI_PROVIDER:mock}
+  admin:
+    # 기동 시 이 이메일 계정을 자동으로 서비스 관리자로 승격 (AdminSeedRunner)
+    email: ${ADMIN_EMAIL:mylovehyb12@gmail.com}
 
 # Spring AI — provider=openai 일 때만 실제 사용
 spring.ai:

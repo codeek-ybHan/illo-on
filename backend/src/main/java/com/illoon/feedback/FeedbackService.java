@@ -18,9 +18,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class FeedbackService {
 
-    /** 반영완료 처리 권한 — 이 앱엔 전역 admin 개념이 없어 소유자 이메일을 직접 판별한다. */
-    private static final String ADMIN_EMAIL = "mylovehyb12@gmail.com";
-
     private final FeedbackRepository feedbackRepository;
     private final UserRepository userRepository;
 
@@ -50,7 +47,7 @@ public class FeedbackService {
     public FeedbackResponse setResolved(Long feedbackId, Long requesterId, boolean resolved) {
         User requester = userRepository.findById(requesterId)
                 .orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND));
-        if (!ADMIN_EMAIL.equals(requester.getEmail())) {
+        if (!requester.isAdmin()) {
             throw new ApiException(ErrorCode.FORBIDDEN);
         }
         Feedback feedback = feedbackRepository.findById(feedbackId)
