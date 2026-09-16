@@ -6,6 +6,7 @@ import AppIcon from './AppIcon.vue'
 
 const router = useRouter()
 const auth = useAuthStore()
+const emit = defineEmits(['toggle-feedback'])
 
 const menu = [
   { to: { name: 'mainboard' }, icon: 'home', label: '메인보드' },
@@ -56,6 +57,13 @@ function logout() {
     </div>
 
     <div class="rail__spacer" />
+
+    <div class="rail__group rail__group--feedback">
+      <button class="rail__item" type="button" title="피드백" @click="emit('toggle-feedback')">
+        <AppIcon name="chat" :size="20" />
+        <span class="rail__tooltip">피드백</span>
+      </button>
+    </div>
 
     <div class="rail__account">
       <button
@@ -236,6 +244,7 @@ function logout() {
   }
   .rail__logo,
   .rail__group--settings,
+  .rail__group--feedback,
   .rail__spacer,
   .rail__tooltip {
     display: none;
