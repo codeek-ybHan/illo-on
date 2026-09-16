@@ -33,14 +33,15 @@ const assigneeOptions = computed(() => [
 function matchAssignee(hint) {
   if (!hint) return null
   const h = String(hint).replace(/\s/g, '')
-  return (
-    props.members.find((m) => m.name.replace(/\s/g, '') === h) ||
-    props.members.find((m) => {
-      const n = m.name.replace(/\s/g, '')
-      return n.includes(h) || h.includes(n)
-    }) ||
-    null
-  )
+  const exact = props.members.find((m) => m.name.replace(/\s/g, '') === h)
+  if (exact) return exact
+  // 정확히 일치하는 이름이 없으면, 부분 일치 후보가 딱 1명일 때만 채운다 — 여러 명이 걸리면
+  // 잘못 배정하지 않도록 미지정으로 남긴다 (백엔드가 이미 정확한 이름만 내려주므로 드문 안전망).
+  const candidates = props.members.filter((m) => {
+    const n = m.name.replace(/\s/g, '')
+    return n.includes(h) || h.includes(n)
+  })
+  return candidates.length === 1 ? candidates[0] : null
 }
 
 // action point 가 바뀌면 폼 초기화

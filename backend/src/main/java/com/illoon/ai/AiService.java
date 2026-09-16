@@ -76,7 +76,7 @@ public class AiService {
                 nullToEmpty(briefing.overview()),
                 safe(briefing.highlights()),
                 safe(briefing.decisions()),
-                toItems(safe(briefing.actionPoints())),
+                toItems(safe(briefing.actionPoints()), memberNames),
                 provider);
     }
 
@@ -108,16 +108,31 @@ public class AiService {
 
     // ---------- mapping ----------
 
-    private List<ActionPointItem> toItems(List<Briefing.ActionPoint> aps) {
+    private List<ActionPointItem> toItems(List<Briefing.ActionPoint> aps, List<String> memberNames) {
         return aps.stream()
                 .filter(ap -> ap.title() != null && !ap.title().isBlank())
                 .map(ap -> ActionPointItem.builder()
                         .title(ap.title().trim())
-                        .assigneeHint(blankToNull(ap.assignee()))
+                        .assigneeHint(matchMemberName(ap.assignee(), memberNames))
                         .dueDate(parseDue(ap.dueDate()))
                         .priority(parsePriority(ap.priority()))
                         .build())
                 .toList();
+    }
+
+    /**
+     * LLM 이 준 assignee 가 실제 프로젝트 멤버 이름과 정확히(공백 무시) 일치할 때만 통과시킨다.
+     * 살짝 다른 이름·목록에 없는 이름을 그대로 흘려보내면 프론트가 엉뚱한 사람에게 매칭할 수 있어
+     * 여기서 걸러낸다 — 애매하면 null(미지정)이 잘못 배정하는 것보다 낫다.
+     */
+    private String matchMemberName(String hint, List<String> memberNames) {
+        String h = blankToNull(hint);
+        if (h == null) return null;
+        String normalizedHint = h.replace(" ", "");
+        return memberNames.stream()
+                .filter(name -> name.replace(" ", "").equals(normalizedHint))
+                .findFirst()
+                .orElse(null);
     }
 
     /**
