@@ -21,25 +21,32 @@ public class FeedbackController {
 
     private final FeedbackService feedbackService;
 
-    @Operation(summary = "피드백 목록 (전체 사용자 공통)")
+    @Operation(summary = "피드백 목록 (전체 사용자 공통, 익명)")
     @GetMapping
-    public List<FeedbackResponse> list() {
-        return feedbackService.list();
+    public List<FeedbackResponse> list(@AuthenticationPrincipal Long userId) {
+        return feedbackService.list(userId);
     }
 
-    @Operation(summary = "피드백 작성")
+    @Operation(summary = "피드백 작성 (답장이면 replyToId 포함)")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public FeedbackResponse create(@AuthenticationPrincipal Long userId,
                                    @Valid @RequestBody FeedbackCreateRequest request) {
-        return feedbackService.create(userId, request.content());
+        return feedbackService.create(userId, request.content(), request.replyToId());
     }
 
-    @Operation(summary = "반영완료 토글 (작성자 계정만 가능)")
+    @Operation(summary = "반영완료 토글 (관리자 계정만 가능)")
     @PatchMapping("/{feedbackId}/resolve")
     public FeedbackResponse resolve(@AuthenticationPrincipal Long userId,
                                     @PathVariable Long feedbackId,
                                     @Valid @RequestBody FeedbackResolveRequest request) {
         return feedbackService.setResolved(feedbackId, userId, request.resolved());
+    }
+
+    @Operation(summary = "공감 토글")
+    @PostMapping("/{feedbackId}/like")
+    public FeedbackResponse toggleLike(@AuthenticationPrincipal Long userId,
+                                       @PathVariable Long feedbackId) {
+        return feedbackService.toggleLike(feedbackId, userId);
     }
 }

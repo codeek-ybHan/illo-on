@@ -19,8 +19,8 @@ export const useFeedbackStore = defineStore('feedback', () => {
     }
   }
 
-  async function send(content) {
-    const created = await api.createFeedback({ content })
+  async function send(content, replyToId) {
+    const created = await api.createFeedback({ content, replyToId: replyToId ?? null })
     items.value = [...items.value, created]
     return created
   }
@@ -31,5 +31,11 @@ export const useFeedbackStore = defineStore('feedback', () => {
     return updated
   }
 
-  return { items, loading, error, fetchAll, send, resolve }
+  async function toggleLike(feedbackId) {
+    const updated = await api.toggleFeedbackLike(feedbackId)
+    items.value = items.value.map((f) => (f.feedbackId === updated.feedbackId ? updated : f))
+    return updated
+  }
+
+  return { items, loading, error, fetchAll, send, resolve, toggleLike }
 })

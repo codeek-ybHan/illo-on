@@ -6,5 +6,8 @@ import jakarta.validation.constraints.Size;
 public record FeedbackCreateRequest(
         @NotBlank(message = "내용을 입력해 주세요.")
         @Size(max = 1000, message = "내용은 1000자 이하여야 합니다.")
-        String content
+        String content,
+
+        /** 답장 대상 피드백 id (없으면 새 글) */
+        Long replyToId
 ) {}

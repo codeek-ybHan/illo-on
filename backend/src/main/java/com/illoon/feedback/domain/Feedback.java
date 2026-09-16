@@ -35,11 +35,16 @@ public class Feedback extends BaseTimeEntity {
     @Column(name = "resolved_at")
     private LocalDateTime resolvedAt;
 
+    /** 답장 대상 피드백 id (없으면 새 글). 별도 FK 매핑 없이 순수 참조 컬럼. */
+    @Column(name = "reply_to_id")
+    private Long replyToId;
+
     @Builder
-    private Feedback(Long userId, String content) {
+    private Feedback(Long userId, String content, Long replyToId) {
         this.userId = userId;
         this.content = content;
         this.resolved = false;
+        this.replyToId = replyToId;
     }
 
     public void resolve(boolean resolved) {

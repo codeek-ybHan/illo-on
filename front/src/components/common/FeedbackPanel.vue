@@ -4,7 +4,7 @@ import { storeToRefs } from 'pinia'
 import AppIcon from './AppIcon.vue'
 import { useFeedbackStore } from '@/stores/feedback'
 import { useAuthStore } from '@/stores/auth'
-import { formatDateTime } from '@/utils/date'
+import { formatTime } from '@/utils/date'
 import { toast } from '@/utils/toast'
 
 defineEmits(['collapse'])
@@ -18,6 +18,7 @@ const isAdmin = auth.user?.isAdmin ?? false
 const draft = ref('')
 const sending = ref(false)
 const scrollEl = ref(null)
+const replyingTo = ref(null)
 
 async function scrollToBottom() {
   await nextTick()
@@ -32,13 +33,45 @@ onMounted(async () => {
   scrollToBottom()
 })
 
+function dateLabel(iso) {
+  const d = new Date(iso)
+  return `${d.getMonth() + 1}월 ${d.getDate()}일`
+}
+
+function showDivider(index) {
+  if (index === 0) return true
+  const prev = new Date(items.value[index - 1].createdAt)
+  const curr = new Date(items.value[index].createdAt)
+  return prev.toDateString() !== curr.toDateString()
+}
+
+function replyTarget(f) {
+  if (!f.replyToId) return null
+  return items.value.find((i) => i.feedbackId === f.replyToId) || null
+}
+
+function truncate(text, n = 40) {
+  if (!text) return ''
+  return text.length > n ? `${text.slice(0, n)}…` : text
+}
+
+function startReply(f) {
+  replyingTo.value = f
+}
+
+function cancelReply() {
+  replyingTo.value = null
+}
+
 async function submit() {
   const text = draft.value.trim()
   if (!text || sending.value) return
   sending.value = true
   try {
     draft.value = ''
-    await feedback.send(text)
+    const replyToId = replyingTo.value?.feedbackId ?? null
+    replyingTo.value = null
+    await feedback.send(text, replyToId)
   } catch (e) {
     toast().error(e.normalizedMessage || '전송에 실패했습니다.')
   } finally {
@@ -56,6 +89,14 @@ function onKeydown(e) {
 async function toggleResolved(f) {
   try {
     await feedback.resolve(f.feedbackId, !f.resolved)
+  } catch (e) {
+    toast().error(e.normalizedMessage || '처리에 실패했습니다.')
+  }
+}
+
+async function toggleLike(f) {
+  try {
+    await feedback.toggleLike(f.feedbackId)
   } catch (e) {
     toast().error(e.normalizedMessage || '처리에 실패했습니다.')
   }
@@ -81,30 +122,61 @@ async function toggleResolved(f) {
         부담 없이 의견을 남겨주세요.
       </p>
 
-      <div
-        v-for="f in items"
-        :key="f.feedbackId"
-        class="fb__msg"
-        :class="{ 'fb__msg--mine': f.userId === auth.user?.userId }"
-      >
-        <span v-if="f.userId !== auth.user?.userId" class="fb__author">{{ f.authorName }}</span>
-        <div class="fb__bubble">{{ f.content }}</div>
-        <div class="fb__meta">
-          <span>{{ formatDateTime(f.createdAt) }}</span>
-          <span v-if="f.resolved" class="fb__resolved">✓ 반영완료</span>
-          <button
-            v-if="isAdmin"
-            type="button"
-            class="fb__resolve-btn"
-            @click="toggleResolved(f)"
-          >
-            {{ f.resolved ? '반영완료 취소' : '반영완료로 표시' }}
-          </button>
+      <template v-for="(f, i) in items" :key="f.feedbackId">
+        <div v-if="showDivider(i)" class="fb__divider">
+          <span>— {{ dateLabel(f.createdAt) }} —</span>
         </div>
-      </div>
+
+        <div class="fb__msg" :class="f.authorIsAdmin ? 'fb__msg--admin' : 'fb__msg--user'">
+          <span v-if="f.authorIsAdmin" class="fb__author">관리자</span>
+
+          <div class="fb__msg-row">
+            <div class="fb__bubble-wrap">
+              <div v-if="replyTarget(f)" class="fb__quote">
+                {{ truncate(replyTarget(f).content) }}
+              </div>
+              <div class="fb__bubble">{{ f.content }}</div>
+            </div>
+            <div class="fb__side-actions">
+              <span v-if="!f.resolved" class="fb__pending">반영 전</span>
+              <button
+                type="button"
+                class="fb__like"
+                :class="{ 'is-liked': f.likedByMe }"
+                @click="toggleLike(f)"
+              >
+                <span>{{ f.likedByMe ? '❤️' : '🤍' }}</span>
+                <span v-if="f.likeCount">{{ f.likeCount }}</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="fb__meta">
+            <span>{{ formatTime(f.createdAt) }}</span>
+            <span v-if="f.resolved" class="fb__resolved">✓ 반영완료</span>
+            <button type="button" class="fb__reply-btn" @click="startReply(f)">답장</button>
+            <button
+              v-if="isAdmin"
+              type="button"
+              class="fb__resolve-btn"
+              @click="toggleResolved(f)"
+            >
+              {{ f.resolved ? '반영완료 취소' : '반영완료로 표시' }}
+            </button>
+          </div>
+        </div>
+      </template>
     </div>
 
     <footer class="fb__compose">
+      <div v-if="replyingTo" class="fb__reply-bar">
+        <span class="fb__reply-bar__text">
+          답장: {{ truncate(replyingTo.content, 30) }}
+        </span>
+        <button type="button" aria-label="답장 취소" @click="cancelReply">
+          <AppIcon name="plus" :size="14" style="transform: rotate(45deg)" />
+        </button>
+      </div>
       <div class="fb__compose-box">
         <textarea
           v-model="draft"
@@ -176,7 +248,7 @@ async function toggleResolved(f) {
   padding: var(--sp-5) var(--sp-4);
   display: flex;
   flex-direction: column;
-  gap: var(--sp-4);
+  gap: var(--sp-3);
 }
 .fb__empty {
   padding-top: var(--sp-6);
@@ -184,21 +256,57 @@ async function toggleResolved(f) {
   font-size: var(--fs-sm);
   color: var(--c-text-muted);
 }
+.fb__divider {
+  display: flex;
+  justify-content: center;
+  margin: var(--sp-2) 0;
+  font-size: var(--fs-xs);
+  color: var(--c-text-muted);
+}
 .fb__msg {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 4px;
+  gap: 2px;
 }
-.fb__msg--mine {
+.fb__msg--user {
   align-items: flex-end;
 }
 .fb__author {
   font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--c-accent);
+}
+.fb__msg-row {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--sp-1);
+  max-width: 100%;
+}
+.fb__msg--admin .fb__msg-row {
+  flex-direction: row;
+}
+.fb__msg--user .fb__msg-row {
+  flex-direction: row-reverse;
+}
+.fb__bubble-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.fb__quote {
+  padding: 6px 10px;
+  border-left: 2px solid var(--c-border-strong);
+  border-radius: var(--r-sm);
+  background: var(--c-surface-alt);
   color: var(--c-text-muted);
+  font-size: var(--fs-xs);
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 .fb__bubble {
-  max-width: 85%;
+  max-width: 220px;
   padding: var(--sp-3);
   border-radius: var(--r-md);
   background: var(--c-surface-alt);
@@ -207,13 +315,40 @@ async function toggleResolved(f) {
   line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-word;
-  border-bottom-left-radius: var(--r-sm);
+  border-bottom-right-radius: var(--r-sm);
 }
-.fb__msg--mine .fb__bubble {
+.fb__msg--admin .fb__bubble {
   background: var(--c-primary);
   color: var(--c-primary-contrast);
-  border-bottom-left-radius: var(--r-md);
-  border-bottom-right-radius: var(--r-sm);
+  border-bottom-left-radius: var(--r-sm);
+  border-bottom-right-radius: var(--r-md);
+}
+.fb__side-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.fb__pending {
+  font-size: var(--fs-xs);
+  color: var(--c-text-muted);
+  white-space: nowrap;
+}
+.fb__like {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  padding: 2px 4px;
+  border-radius: var(--r-full);
+  font-size: var(--fs-xs);
+  color: var(--c-text-muted);
+}
+.fb__like:hover {
+  background: var(--c-surface-alt);
+}
+.fb__like.is-liked {
+  color: var(--c-danger);
 }
 .fb__meta {
   display: flex;
@@ -225,6 +360,13 @@ async function toggleResolved(f) {
 .fb__resolved {
   color: var(--c-success);
   font-weight: 600;
+}
+.fb__reply-btn {
+  color: var(--c-text-muted);
+}
+.fb__reply-btn:hover {
+  color: var(--c-text);
+  text-decoration: underline;
 }
 .fb__resolve-btn {
   padding: 2px 8px;
@@ -240,6 +382,25 @@ async function toggleResolved(f) {
 .fb__compose {
   border-top: 1px solid var(--c-border);
   padding: var(--sp-3) var(--sp-4) var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+.fb__reply-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  padding: 6px var(--sp-3);
+  border-radius: var(--r-sm);
+  background: var(--c-surface-alt);
+  font-size: var(--fs-xs);
+  color: var(--c-text-2);
+}
+.fb__reply-bar__text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .fb__compose-box {
   display: flex;

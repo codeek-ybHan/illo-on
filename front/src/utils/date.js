@@ -50,6 +50,14 @@ export function formatDateTime(value) {
   })
 }
 
+/** ISO 문자열 → '오후 2:00' (채팅 말풍선 등 시각만 필요한 곳) */
+export function formatTime(value) {
+  if (!value) return ''
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return ''
+  return d.toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' })
+}
+
 /** 마감 표시: 시각이 있으면 'M월 D일 (요일) HH:mm', 자정이면 날짜만 */
 export function formatDue(value) {
   if (!value) return '-'
