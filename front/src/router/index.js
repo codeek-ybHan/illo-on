@@ -85,6 +85,12 @@ const router = createRouter({
         },
       ],
     },
+    {
+      path: '/projects/:id/export',
+      name: 'project-export',
+      component: () => import('@/views/project/ProjectExportView.vue'),
+      meta: { title: '프로젝트 내보내기' },
+    },
     { path: '/:pathMatch(.*)*', redirect: '/' },
   ],
 })

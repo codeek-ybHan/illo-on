@@ -88,6 +88,14 @@ async function handleEdit(payload) {
   toast().success('프로젝트를 저장했습니다.')
 }
 
+function exportPdf() {
+  const url = router.resolve({
+    name: 'project-export',
+    params: { id: current.value.projectId },
+  }).href
+  window.open(url, '_blank')
+}
+
 async function handleMemberRolesSave(changes) {
   await Promise.all(
     changes.map(({ userId, jobTitle }) =>
@@ -140,9 +148,12 @@ async function copyInvite() {
     :title="current?.name || '프로젝트'"
     subtitle="프로젝트의 업무 · 회의 · Sprint를 한곳에서 관리하세요."
   >
-    <template v-if="isAdmin" #actions>
-      <BaseButton variant="ghost" size="sm" @click="showEdit = true">수정</BaseButton>
-      <BaseButton variant="ghost" size="sm" @click="showDelete = true">삭제</BaseButton>
+    <template v-if="current" #actions>
+      <BaseButton variant="ghost" size="sm" @click="exportPdf">PDF 내보내기</BaseButton>
+      <template v-if="isAdmin">
+        <BaseButton variant="ghost" size="sm" @click="showEdit = true">수정</BaseButton>
+        <BaseButton variant="ghost" size="sm" @click="showDelete = true">삭제</BaseButton>
+      </template>
     </template>
 
     <p v-if="error" class="detail-error">{{ error }}</p>
