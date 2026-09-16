@@ -138,7 +138,7 @@ async function toggleLike(f) {
               <div class="fb__bubble">{{ f.content }}</div>
             </div>
             <div class="fb__side-actions">
-              <span v-if="!f.resolved" class="fb__pending">반영 전</span>
+              <span v-if="!f.resolved && !isAdmin" class="fb__pending">반영 전</span>
               <button
                 type="button"
                 class="fb__like"
