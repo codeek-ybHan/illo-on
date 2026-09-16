@@ -13,10 +13,11 @@ const ui = useUiStore()
 const aiCollapsed = ref(true)
 
 // 회의 상세처럼 meta.aiPanelOpen 이 있는 화면은 패널을 펼친 상태로 진입
+// (모바일은 패널이 전체 화면을 덮으므로 자동으로 펼치지 않음)
 watch(
   () => route.meta.aiPanelOpen,
   (open) => {
-    if (open) aiCollapsed.value = false
+    if (open && !window.matchMedia('(max-width: 640px)').matches) aiCollapsed.value = false
   },
   { immediate: true },
 )

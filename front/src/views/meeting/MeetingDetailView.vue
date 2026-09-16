@@ -32,6 +32,10 @@ const showDelete = ref(false)
 const deleting = ref(false)
 const audioFile = ref(null)
 const registeredIndexes = ref([])
+const contentCollapsed = ref(true)
+
+const CONTENT_PREVIEW_LIMIT = 300
+const isLongContent = computed(() => (current.value?.content?.length ?? 0) > CONTENT_PREVIEW_LIMIT)
 
 // overview 없고 highlights 도 없으면 예전(summary) 형식으로 저장된 분석 → 재분석 유도
 const staleBriefing = computed(
@@ -64,6 +68,7 @@ watch(
   async (id) => {
     registeredIndexes.value = []
     editingContent.value = false
+    contentCollapsed.value = true
     try {
       const m = await store.fetchMeeting(id)
       contentDraft.value = m?.content ?? ''
@@ -254,7 +259,22 @@ async function handleDelete() {
           </template>
 
           <template v-else>
-            <p v-if="current.content" class="content-view">{{ current.content }}</p>
+            <template v-if="current.content">
+              <p
+                class="content-view"
+                :class="{ 'content-view--collapsed': isLongContent && contentCollapsed }"
+              >
+                {{ current.content }}
+              </p>
+              <button
+                v-if="isLongContent"
+                type="button"
+                class="content-view__toggle"
+                @click="contentCollapsed = !contentCollapsed"
+              >
+                {{ contentCollapsed ? '전체보기' : '숨기기' }}
+              </button>
+            </template>
             <p v-else class="empty-hint">
               회의 내용이 없습니다. “수정”을 눌러 회의록이나 메신저 대화를 입력하세요.
             </p>
@@ -398,6 +418,7 @@ async function handleDelete() {
   gap: var(--sp-3);
 }
 .content-view {
+  position: relative;
   white-space: pre-wrap;
   line-height: 1.7;
   font-size: var(--fs-md);
@@ -405,6 +426,31 @@ async function handleDelete() {
   padding: var(--sp-3);
   background: var(--c-surface-alt);
   border-radius: var(--r-md);
+}
+.content-view--collapsed {
+  max-height: 220px;
+  overflow: hidden;
+}
+.content-view--collapsed::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 56px;
+  border-radius: 0 0 var(--r-md) var(--r-md);
+  background: linear-gradient(to bottom, transparent, var(--c-surface-alt));
+  pointer-events: none;
+}
+.content-view__toggle {
+  align-self: flex-start;
+  margin-top: calc(var(--sp-2) * -1);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--c-accent);
+}
+.content-view__toggle:hover {
+  text-decoration: underline;
 }
 .input-area__textarea {
   padding: var(--sp-3);
@@ -477,5 +523,15 @@ async function handleDelete() {
   border-radius: var(--r-sm);
   background: var(--c-accent-soft);
   color: var(--c-accent);
+}
+
+@media (max-width: 640px) {
+  :deep(.page__head) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  :deep(.page__actions) {
+    justify-content: flex-end;
+  }
 }
 </style>
