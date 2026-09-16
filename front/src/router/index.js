@@ -65,6 +65,12 @@ const router = createRouter({
           component: () => import('@/views/CalendarView.vue'),
           meta: { title: '캘린더', breadcrumb: ['캘린더'] },
         },
+        {
+          path: 'settings',
+          name: 'settings',
+          component: () => import('@/views/SettingsView.vue'),
+          meta: { title: '설정', breadcrumb: ['설정'] },
+        },
       ],
     },
     {

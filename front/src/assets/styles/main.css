@@ -87,6 +87,50 @@
 }
 
 /* =========================================================
+   다크 테마 — 색상 토큰만 오버라이드 (설정 탭에서 전환)
+   ========================================================= */
+:root[data-theme='dark'] {
+  --c-page: #0e0f11;
+  --c-shell: #1c1e21;
+  --c-surface: #202226;
+  --c-surface-alt: #2a2d31;
+  --c-border: #34373c;
+  --c-border-strong: #474b52;
+
+  --c-text: #ecedef;
+  --c-text-2: #b6bac0;
+  --c-text-muted: #888e95;
+
+  --c-primary: #e8e9eb;
+  --c-primary-contrast: #1a1c1f;
+  --c-primary-hover: #c9cbcf;
+  --c-accent: #a7afba;
+  --c-accent-soft: #33373d;
+  --c-success: #3fae6c;
+  --c-danger: #e2685f;
+
+  --c-lavender: #33343a;
+  --c-lavender-ink: #c7c9d1;
+  --c-peach: #3a3532;
+  --c-peach-ink: #d9c9c5;
+  --c-cream: #35332c;
+  --c-cream-ink: #d9d3c5;
+  --c-mint: #2b3630;
+  --c-mint-ink: #8fcab0;
+
+  --c-status-todo: #888e95;
+  --c-status-progress: #a7afba;
+  --c-status-done: #3fae6c;
+  --c-priority-high: #e2685f;
+  --c-priority-medium: #a7afba;
+  --c-priority-low: #888e95;
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-shell: 0 12px 48px rgba(0, 0, 0, 0.5);
+  --shadow-pop: 0 6px 20px rgba(0, 0, 0, 0.45);
+}
+
+/* =========================================================
    반응형 브레이크포인트 규칙
    CSS 미디어 피처는 커스텀 프로퍼티를 지원하지 않으므로 각 @media
    블록에는 아래 두 값을 리터럴로 직접 사용한다. 값이 바뀌면 전체

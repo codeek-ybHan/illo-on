@@ -2,9 +2,11 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { fetchBoard } from '@/api/board'
+import { usePreferencesStore } from '@/stores/preferences'
 import AppIcon from './AppIcon.vue'
 
 const router = useRouter()
+const preferences = usePreferencesStore()
 const open = ref(false)
 const root = ref(null)
 const board = ref(null)
@@ -26,7 +28,7 @@ const items = computed(() => {
   const b = board.value
   if (!b) return []
   const list = []
-  if (b.overdueCount > 0) {
+  if (b.overdueCount > 0 && preferences.showOverdueAlerts) {
     list.push({
       key: 'overdue',
       text: `마감이 지난 업무 ${b.overdueCount}건`,
@@ -34,7 +36,7 @@ const items = computed(() => {
       to: { name: 'mainboard' },
     })
   }
-  if (b.dueSoonCount > 0) {
+  if (b.dueSoonCount > 0 && preferences.showDueSoonAlerts) {
     list.push({
       key: 'duesoon',
       text: `3일 내 마감 업무 ${b.dueSoonCount}건`,

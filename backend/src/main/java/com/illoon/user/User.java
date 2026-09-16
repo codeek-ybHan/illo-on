@@ -37,4 +37,13 @@ public class User extends BaseTimeEntity {
         this.email = email;
         this.password = password;
     }
+
+    public void updateProfile(String name, String email) {
+        this.name = name;
+        this.email = email;
+    }
+
+    public void updatePassword(String encodedPassword) {
+        this.password = encodedPassword;
+    }
 }

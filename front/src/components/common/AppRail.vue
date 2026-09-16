@@ -47,10 +47,10 @@ function logout() {
       <span class="rail__caption">계정</span>
       <ul>
         <li>
-          <button class="rail__item" type="button" title="설정" disabled>
+          <RouterLink :to="{ name: 'settings' }" class="rail__item" title="설정">
             <AppIcon name="settings" :size="20" />
             <span class="rail__tooltip">설정</span>
-          </button>
+          </RouterLink>
         </li>
       </ul>
     </div>

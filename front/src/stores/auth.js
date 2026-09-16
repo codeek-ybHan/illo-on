@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import * as authApi from '@/api/auth'
+import * as userApi from '@/api/user'
 import {
   getToken,
   setToken,
@@ -48,5 +49,28 @@ export const useAuthStore = defineStore('auth', () => {
     return data
   }
 
-  return { token, user, isAuthenticated, setAuth, logout, signup, login }
+  /** 계정 정보 수정 — 성공 시 캐시된 user 갱신 */
+  async function updateProfile(payload) {
+    const updated = await userApi.updateProfile(payload)
+    user.value = { ...user.value, ...updated }
+    setStoredUser(user.value)
+    return updated
+  }
+
+  /** 비밀번호 변경 */
+  async function changePassword(payload) {
+    await userApi.changePassword(payload)
+  }
+
+  return {
+    token,
+    user,
+    isAuthenticated,
+    setAuth,
+    logout,
+    signup,
+    login,
+    updateProfile,
+    changePassword,
+  }
 })
