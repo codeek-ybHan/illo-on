@@ -254,7 +254,7 @@ onMounted(async () => {
   color: #5b6470;
 }
 .export-section {
-  margin-bottom: 28px;
+  margin-bottom: 48px;
   break-inside: avoid;
 }
 .export-section__title {
