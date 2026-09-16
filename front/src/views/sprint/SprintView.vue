@@ -133,4 +133,20 @@ function activeFirst(sprints) {
   min-width: 240px;
   font-size: var(--fs-xs);
 }
+
+@media (max-width: 640px) {
+  .sv-sprint {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--sp-2);
+  }
+  .sv-sprint__info {
+    flex-wrap: wrap;
+    row-gap: var(--sp-1);
+  }
+  .sv-sprint__progress {
+    min-width: 0;
+    width: 100%;
+  }
+}
 </style>
