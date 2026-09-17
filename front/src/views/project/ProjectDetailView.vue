@@ -16,11 +16,13 @@ import ProjectForm from '@/components/project/ProjectForm.vue'
 import MemberRolesForm from '@/components/project/MemberRolesForm.vue'
 import TaskList from '@/components/task/TaskList.vue'
 import TaskForm from '@/components/task/TaskForm.vue'
+import TaskCompleteModal from '@/components/task/TaskCompleteModal.vue'
 import SprintPanel from '@/components/sprint/SprintPanel.vue'
 import MeetingCard from '@/components/meeting/MeetingCard.vue'
 import MeetingForm from '@/components/meeting/MeetingForm.vue'
 import { formatDate } from '@/utils/date'
 import { toast } from '@/utils/toast'
+import { useTaskComplete } from '@/composables/useTaskComplete'
 
 const route = useRoute()
 const router = useRouter()
@@ -79,9 +81,12 @@ async function handleMeetingCreate(payload) {
   return meetingStore.createMeeting(route.params.id, payload)
 }
 
-function handleStatusChange(task, status) {
-  taskStore.changeStatus(task, status)
-}
+const {
+  pendingTask: completingTask,
+  request: handleStatusChange,
+  confirm: confirmComplete,
+  cancel: cancelComplete,
+} = useTaskComplete((task, status, extra) => taskStore.changeStatus(task, status, extra))
 
 async function handleEdit(payload) {
   await store.updateProject(route.params.id, payload)
@@ -305,6 +310,12 @@ async function copyInvite() {
       </BaseButton>
     </template>
   </BaseModal>
+
+  <TaskCompleteModal
+    :open="!!completingTask"
+    @confirm="confirmComplete"
+    @cancel="cancelComplete"
+  />
 </template>
 
 <style scoped>

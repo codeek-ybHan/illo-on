@@ -4,6 +4,7 @@ import com.illoon.task.domain.TaskPriority;
 import com.illoon.task.domain.TaskStatus;
 import jakarta.validation.constraints.Size;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
@@ -19,5 +20,7 @@ public record TaskUpdateRequest(
         TaskPriority priority,
         TaskStatus status,
         Long sprintId,
-        Long meetingId
+        Long meetingId,
+        /** 상태를 DONE으로 바꿀 때 함께 입력하는 완료일자 */
+        LocalDate completedAt
 ) {}

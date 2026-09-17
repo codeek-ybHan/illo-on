@@ -12,8 +12,10 @@ import ProgressBar from '@/components/common/ProgressBar.vue'
 import AppIcon from '@/components/common/AppIcon.vue'
 import SprintForm from './SprintForm.vue'
 import SprintBoard from './SprintBoard.vue'
+import TaskCompleteModal from '@/components/task/TaskCompleteModal.vue'
 import { formatDate } from '@/utils/date'
 import { toast } from '@/utils/toast'
+import { useTaskComplete } from '@/composables/useTaskComplete'
 
 const props = defineProps({
   projectId: { type: [Number, String], required: true },
@@ -81,15 +83,24 @@ async function confirmDelete() {
   }
 }
 
-async function changeStatus(task, status) {
+async function applyStatusChange(task, status, extra) {
   try {
-    const updated = await taskStore.updateTask(task.taskId, toUpdatePayload(task, { status }))
+    const updated = await taskStore.updateTask(
+      task.taskId,
+      toUpdatePayload(task, { status, ...extra }),
+    )
     boardTasks.value = boardTasks.value.map((t) => (t.taskId === updated.taskId ? updated : t))
     sprintStore.refreshSprint(selectedId.value, props.projectId)
   } catch (e) {
     toast().error(e.normalizedMessage || '상태 변경에 실패했습니다.')
   }
 }
+const {
+  pendingTask: completingTask,
+  request: changeStatus,
+  confirm: confirmComplete,
+  cancel: cancelComplete,
+} = useTaskComplete(applyStatusChange)
 
 async function unassign(task) {
   try {
@@ -211,6 +222,12 @@ async function assignTask(task) {
       </li>
     </ul>
   </BaseModal>
+
+  <TaskCompleteModal
+    :open="!!completingTask"
+    @confirm="confirmComplete"
+    @cancel="cancelComplete"
+  />
 </template>
 
 <style scoped>

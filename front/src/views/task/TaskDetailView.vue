@@ -11,8 +11,10 @@ import BaseModal from '@/components/common/BaseModal.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import AppIcon from '@/components/common/AppIcon.vue'
 import TaskForm from '@/components/task/TaskForm.vue'
+import TaskCompleteModal from '@/components/task/TaskCompleteModal.vue'
 import { formatDate, formatDue } from '@/utils/date'
 import { toast } from '@/utils/toast'
+import { useTaskComplete } from '@/composables/useTaskComplete'
 
 const route = useRoute()
 const router = useRouter()
@@ -48,8 +50,15 @@ watch(
   { immediate: true },
 )
 
+const {
+  pendingTask: completingTask,
+  request: requestStatusChange,
+  confirm: confirmComplete,
+  cancel: cancelComplete,
+} = useTaskComplete((task, status, extra) => store.changeStatus(task, status, extra))
+
 function advanceStatus() {
-  if (nextStatus.value) store.changeStatus(current.value, nextStatus.value)
+  if (nextStatus.value) requestStatusChange(current.value, nextStatus.value)
 }
 
 async function handleEdit(payload) {
@@ -112,6 +121,10 @@ async function handleDelete() {
               <dt>마감일시</dt>
               <dd>{{ current.dueDate ? formatDue(current.dueDate) : '미정' }}</dd>
             </div>
+            <div v-if="current.status === 'DONE'" class="field">
+              <dt>완료일자</dt>
+              <dd>{{ current.completedAt ? formatDate(current.completedAt) : '미정' }}</dd>
+            </div>
             <div class="field">
               <dt>프로젝트</dt>
               <dd>
@@ -168,6 +181,12 @@ async function handleDelete() {
       </BaseButton>
     </template>
   </BaseModal>
+
+  <TaskCompleteModal
+    :open="!!completingTask"
+    @confirm="confirmComplete"
+    @cancel="cancelComplete"
+  />
 </template>
 
 <style scoped>

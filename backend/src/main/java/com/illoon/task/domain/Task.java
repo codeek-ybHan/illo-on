@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
@@ -52,6 +53,9 @@ public class Task extends BaseTimeEntity {
     @Column(nullable = false, length = 15)
     private TaskStatus status;
 
+    /** 완료(DONE) 처리 시 사용자가 입력하는 완료일자 */
+    private LocalDate completedAt;
+
     @Builder
     private Task(Long projectId, Long meetingId, Long sprintId, Long assigneeId,
                 String title, String description, LocalDateTime dueDate,
@@ -79,7 +83,8 @@ public class Task extends BaseTimeEntity {
 
     /** PUT — 전체 교체 (기획서 §11-4, 별도 status API 없음) */
     public void update(String title, String description, Long assigneeId, LocalDateTime dueDate,
-                       TaskPriority priority, TaskStatus status, Long sprintId, Long meetingId) {
+                       TaskPriority priority, TaskStatus status, Long sprintId, Long meetingId,
+                       LocalDate completedAt) {
         if (title != null && !title.isBlank()) this.title = title;
         this.description = description;
         this.assigneeId = assigneeId;
@@ -88,5 +93,6 @@ public class Task extends BaseTimeEntity {
         if (status != null) this.status = status;
         this.sprintId = sprintId;
         this.meetingId = meetingId;
+        this.completedAt = this.status == TaskStatus.DONE ? completedAt : null;
     }
 }

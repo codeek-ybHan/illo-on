@@ -7,6 +7,7 @@ import com.illoon.project.domain.Project;
 import com.illoon.project.ProjectMemberRepository;
 import com.illoon.project.ProjectRepository;
 import com.illoon.task.domain.Task;
+import com.illoon.task.domain.TaskStatus;
 import com.illoon.task.dto.TaskCreateRequest;
 import com.illoon.task.dto.TaskResponse;
 import com.illoon.task.dto.TaskUpdateRequest;
@@ -16,10 +17,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -89,8 +90,11 @@ public class TaskService {
         projectService.requireMember(task.getProjectId(), userId);
         validateAssignee(task.getProjectId(), req.assigneeId());
 
+        LocalDate completedAt = req.status() == TaskStatus.DONE && req.completedAt() == null
+                ? LocalDate.now()
+                : req.completedAt();
         task.update(req.title(), req.description(), req.assigneeId(), req.dueDate(),
-                req.priority(), req.status(), req.sprintId(), req.meetingId());
+                req.priority(), req.status(), req.sprintId(), req.meetingId(), completedAt);
         return toResponses(List.of(task)).get(0);
     }
 

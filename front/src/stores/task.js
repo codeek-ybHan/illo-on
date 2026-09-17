@@ -14,6 +14,7 @@ export function toUpdatePayload(task, overrides = {}) {
     status: task.status,
     sprintId: task.sprintId ?? null,
     meetingId: task.meetingId ?? null,
+    completedAt: task.completedAt ?? null,
     ...overrides,
   }
 }
@@ -69,10 +70,10 @@ export const useTaskStore = defineStore('task', () => {
     return updated
   }
 
-  /** 상태만 빠르게 변경 (인라인 UI라 실패 시 토스트) */
-  async function changeStatus(task, status) {
+  /** 상태만 빠르게 변경 (인라인 UI라 실패 시 토스트). DONE으로 바꿀 땐 completedAt을 함께 넘길 수 있다 */
+  async function changeStatus(task, status, extra = {}) {
     try {
-      return await updateTask(task.taskId, toUpdatePayload(task, { status }))
+      return await updateTask(task.taskId, toUpdatePayload(task, { status, ...extra }))
     } catch (e) {
       toast().error(e.normalizedMessage || '상태 변경에 실패했습니다.')
       throw e

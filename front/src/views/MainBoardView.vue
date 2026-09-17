@@ -11,8 +11,10 @@ import StatCard from '@/components/common/StatCard.vue'
 import ProgressBar from '@/components/common/ProgressBar.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import TaskList from '@/components/task/TaskList.vue'
+import TaskCompleteModal from '@/components/task/TaskCompleteModal.vue'
 import AppIcon from '@/components/common/AppIcon.vue'
 import { formatDate, formatDue, daysUntil, greetingPhrase } from '@/utils/date'
+import { useTaskComplete } from '@/composables/useTaskComplete'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -78,14 +80,20 @@ onMounted(async () => {
   }
 })
 
-async function handleStatusChange(task, status) {
+async function applyStatusChange(task, status, extra) {
   try {
-    await taskStore.changeStatus(task, status)
+    await taskStore.changeStatus(task, status, extra)
     board.value = await fetchBoard()
   } catch {
     /* changeStatus 가 토스트 처리 */
   }
 }
+const {
+  pendingTask: completingTask,
+  request: handleStatusChange,
+  confirm: confirmComplete,
+  cancel: cancelComplete,
+} = useTaskComplete(applyStatusChange)
 </script>
 
 <template>
@@ -205,6 +213,12 @@ async function handleStatusChange(task, status) {
       </div>
     </section>
   </PagePlaceholder>
+
+  <TaskCompleteModal
+    :open="!!completingTask"
+    @confirm="confirmComplete"
+    @cancel="cancelComplete"
+  />
 </template>
 
 <style scoped>

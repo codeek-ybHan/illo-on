@@ -4,6 +4,7 @@ import com.illoon.task.domain.Task;
 import com.illoon.task.domain.TaskPriority;
 import com.illoon.task.domain.TaskStatus;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 public record TaskResponse(
@@ -19,6 +20,7 @@ public record TaskResponse(
         LocalDateTime dueDate,
         TaskPriority priority,
         TaskStatus status,
+        LocalDate completedAt,
         LocalDateTime createdAt
 ) {
     public static TaskResponse of(Task t, String projectName, String assigneeName) {
@@ -27,7 +29,7 @@ public record TaskResponse(
                 t.getMeetingId(), t.getSprintId(),
                 t.getTitle(), t.getDescription(),
                 t.getAssigneeId(), assigneeName,
-                t.getDueDate(), t.getPriority(), t.getStatus(),
+                t.getDueDate(), t.getPriority(), t.getStatus(), t.getCompletedAt(),
                 t.getCreatedAt());
     }
 }

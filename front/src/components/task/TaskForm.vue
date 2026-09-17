@@ -8,6 +8,7 @@ import BaseDatePicker from '@/components/common/BaseDatePicker.vue'
 import { fetchMembers } from '@/api/project'
 import { fetchSprints } from '@/api/sprint'
 import { required, maxLength, firstError } from '@/utils/validation'
+import { toISODate } from '@/utils/date'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -97,6 +98,7 @@ const form = reactive({
   dueDate: '',
   priority: 'MEDIUM',
   status: 'TODO',
+  completedAt: '',
 })
 const errors = reactive({ title: '', project: '' })
 const formError = ref('')
@@ -119,7 +121,16 @@ watch(
       dueDate: t?.dueDate ?? '',
       priority: t?.priority ?? 'MEDIUM',
       status: t?.status ?? 'TODO',
+      completedAt: t?.completedAt ?? '',
     })
+  },
+)
+
+// 상태를 완료로 바꾸는 순간 완료일자가 비어 있으면 오늘 날짜로 기본 채움
+watch(
+  () => form.status,
+  (status) => {
+    if (status === 'DONE' && !form.completedAt) form.completedAt = toISODate(new Date())
   },
 )
 
@@ -147,6 +158,7 @@ async function onSubmit() {
       ? {
           ...base,
           status: form.status,
+          completedAt: form.status === 'DONE' ? form.completedAt || null : null,
           meetingId: props.task.meetingId ?? null,
         }
       : { ...base, projectId: Number(effectiveProjectId.value) }
@@ -213,12 +225,15 @@ async function onSubmit() {
         />
       </div>
 
-      <BaseSelect
-        v-if="task"
-        v-model="form.status"
-        label="상태"
-        :options="STATUS_OPTIONS"
-      />
+      <div v-if="task" class="tform__row u-form-row">
+        <BaseSelect v-model="form.status" label="상태" :options="STATUS_OPTIONS" />
+        <BaseDatePicker
+          v-if="form.status === 'DONE'"
+          v-model="form.completedAt"
+          label="완료일자"
+          placeholder="완료일자 선택"
+        />
+      </div>
     </form>
 
     <template #footer>
