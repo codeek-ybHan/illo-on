@@ -59,7 +59,7 @@ public class TaskService {
     @Transactional(readOnly = true)
     public TaskResponse get(Long taskId, Long userId) {
         Task task = findTask(taskId);
-        projectService.requireMember(task.getProjectId(), userId);
+        requireAccess(task, userId);
         return toResponses(List.of(task)).get(0);
     }
 
@@ -97,11 +97,23 @@ public class TaskService {
     @Transactional
     public void delete(Long taskId, Long userId) {
         Task task = findTask(taskId);
-        projectService.requireMember(task.getProjectId(), userId);
+        requireAccess(task, userId);
         taskRepository.delete(task);
     }
 
     // ---------- helpers ----------
+
+    /**
+     * 프로젝트가 이미 삭제된 고아(orphan) Task 는 멤버십을 확인할 프로젝트가 없으므로,
+     * 담당자 본인에 한해 조회/삭제를 허용한다.
+     */
+    private void requireAccess(Task task, Long userId) {
+        if (projectRepository.existsById(task.getProjectId())) {
+            projectService.requireMember(task.getProjectId(), userId);
+        } else if (!java.util.Objects.equals(task.getAssigneeId(), userId)) {
+            throw new ApiException(ErrorCode.TASK_NOT_FOUND);
+        }
+    }
 
     private void validateAssignee(Long projectId, Long assigneeId) {
         if (assigneeId != null
