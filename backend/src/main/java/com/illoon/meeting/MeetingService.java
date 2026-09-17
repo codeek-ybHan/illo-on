@@ -130,7 +130,7 @@ public class MeetingService {
         // 회의에서 생성된 Task 는 유지하고 meeting_id 만 끊는다
         taskRepository.findAllByMeetingId(meetingId).forEach(t -> t.update(
                 t.getTitle(), t.getDescription(), t.getAssigneeId(), t.getDueDate(),
-                t.getPriority(), t.getStatus(), t.getSprintId(), null));
+                t.getPriority(), t.getStatus(), t.getSprintId(), null, t.getCompletedAt()));
         meetingRepository.delete(meeting);
     }
 
