@@ -4,6 +4,8 @@ import com.illoon.common.exception.ApiException;
 import com.illoon.common.exception.ErrorCode;
 import com.illoon.project.domain.*;
 import com.illoon.project.dto.*;
+import com.illoon.sprint.SprintRepository;
+import com.illoon.task.TaskRepository;
 import com.illoon.team.Team;
 import com.illoon.team.TeamRepository;
 import com.illoon.user.User;
@@ -32,6 +34,8 @@ public class ProjectService {
     private final ProjectInviteRepository inviteRepository;
     private final TeamRepository teamRepository;
     private final UserRepository userRepository;
+    private final SprintRepository sprintRepository;
+    private final TaskRepository taskRepository;
 
     @Value("${app.invite.base-url}")
     private String inviteBaseUrl;
@@ -88,6 +92,8 @@ public class ProjectService {
     @Transactional
     public void delete(Long projectId, Long userId) {
         requireAdmin(projectId, userId);
+        taskRepository.deleteAllByProjectId(projectId);
+        sprintRepository.deleteAllByProjectId(projectId);
         memberRepository.deleteAll(memberRepository.findAllByIdProjectId(projectId));
         projectRepository.deleteById(projectId);
     }

@@ -297,7 +297,7 @@ async function copyInvite() {
   />
 
   <BaseModal v-model:open="showDelete" title="프로젝트 삭제" size="sm">
-    <p>정말 이 프로젝트를 삭제할까요? 관련 데이터가 모두 사라집니다.</p>
+    <p>정말 이 프로젝트를 삭제할까요? 관련 Sprint와 Task 데이터도 전부 삭제됩니다.</p>
     <template #footer>
       <BaseButton variant="ghost" size="sm" @click="showDelete = false">취소</BaseButton>
       <BaseButton variant="primary" size="sm" :disabled="deleting" @click="handleDelete">

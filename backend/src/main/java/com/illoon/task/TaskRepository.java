@@ -29,4 +29,6 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     long countBySprintId(Long sprintId);
 
     long countBySprintIdAndStatus(Long sprintId, TaskStatus status);
+
+    void deleteAllByProjectId(Long projectId);
 }
