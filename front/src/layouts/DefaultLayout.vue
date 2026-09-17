@@ -4,7 +4,6 @@ import { useRoute } from 'vue-router'
 import AppRail from '@/components/common/AppRail.vue'
 import AppHeader from '@/components/common/AppHeader.vue'
 import AiAssistantPanel from '@/components/common/AiAssistantPanel.vue'
-import FeedbackPanel from '@/components/common/FeedbackPanel.vue'
 import GlobalCreateModals from '@/components/common/GlobalCreateModals.vue'
 import SearchPalette from '@/components/common/SearchPalette.vue'
 import { useUiStore } from '@/stores/ui'
@@ -12,7 +11,6 @@ import { useUiStore } from '@/stores/ui'
 const route = useRoute()
 const ui = useUiStore()
 const aiCollapsed = ref(true)
-const feedbackCollapsed = ref(true)
 
 // 회의 상세처럼 meta.aiPanelOpen 이 있는 화면은 패널을 펼친 상태로 진입
 // (모바일은 패널이 전체 화면을 덮으므로 자동으로 펼치지 않음)
@@ -38,7 +36,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown))
 <template>
   <div class="layout">
     <div class="layout__shell">
-      <AppRail @toggle-feedback="feedbackCollapsed = false" />
+      <AppRail />
 
       <div class="layout__main">
         <AppHeader :ai-panel-collapsed="aiCollapsed" @toggle-ai="aiCollapsed = false" />
@@ -50,7 +48,6 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown))
       </div>
 
       <AiAssistantPanel v-show="!aiCollapsed" @collapse="aiCollapsed = true" />
-      <FeedbackPanel v-show="!feedbackCollapsed" @collapse="feedbackCollapsed = true" />
     </div>
 
     <GlobalCreateModals />
