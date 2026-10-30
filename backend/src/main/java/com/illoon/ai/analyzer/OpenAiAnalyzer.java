@@ -57,7 +57,7 @@ public class OpenAiAnalyzer implements AiAnalyzer {
                 목록에 없는 사람(고객사 담당자, 예시로 언급된 제3자 등)은 절대 넣지 말 것.
                 지목된 사람이 목록에 없거나 불명확하면 null (지어내지 말 것)
               - dueDate: 명확한 경우만 yyyy-MM-dd. 아니면 null.
-                "다음 주 금요일", "9/15" 같은 표현은 아래 '오늘' 기준으로 계산. 연도를 임의로 넣지 말 것.
+                "다음 주 금요일", "9/15" 같은 표현은 아래 '회의 기준일' 기준으로 계산. 연도를 임의로 넣지 말 것.
               - priority: HIGH | MEDIUM | LOW (긴급 시 HIGH, 여유 시 LOW, 기본 MEDIUM)
 
             [예시 1 — 업무 회의]
@@ -106,14 +106,19 @@ public class OpenAiAnalyzer implements AiAnalyzer {
 
     @Override
     public Briefing analyze(String meetingText, List<String> memberNames) {
+        return analyze(meetingText, memberNames, LocalDate.now());
+    }
+
+    @Override
+    public Briefing analyze(String meetingText, List<String> memberNames, LocalDate referenceDate) {
         try {
             String members = (memberNames == null || memberNames.isEmpty())
                     ? "(없음)" : String.join(", ", memberNames);
-            LocalDate today = LocalDate.now();
+            LocalDate today = referenceDate;
             return chatClient.prompt()
                     .user(u -> u.text("""
-                            오늘은 {today} ({dayOfWeek}요일, yyyy-MM-dd) 이다.
-                            "다음 주 금요일", "이번 주말" 같은 상대 날짜는 이 요일을 기준으로 계산할 것.
+                            회의 기준일은 {today} ({dayOfWeek}요일, yyyy-MM-dd) 이다.
+                            "다음 주 금요일", "이번 주말" 같은 상대 날짜는 회의 기준일과 이 요일을 기준으로 계산할 것. 명시된 과거 날짜의 연도를 바꾸지 말 것.
 
                             [프로젝트 멤버 목록]
                             {members}
@@ -130,7 +135,7 @@ public class OpenAiAnalyzer implements AiAnalyzer {
         } catch (Exception e) {
             // OpenAI 장애·쿼터 초과 등 → 502 대신 규칙 기반 분석으로 degrade
             log.warn("OpenAI analyze failed, falling back to rule-based analyzer: {}", e.getMessage());
-            return fallback.analyze(meetingText, memberNames);
+            return fallback.analyze(meetingText, memberNames, referenceDate);
         }
     }
 }

@@ -10,4 +10,6 @@ public interface SprintRepository extends JpaRepository<Sprint, Long> {
     List<Sprint> findAllByProjectIdOrderByStartDateAscCreatedAtAsc(Long projectId);
 
     void deleteAllByProjectId(Long projectId);
+    boolean existsByIdAndProjectId(Long id, Long projectId);
 }
+

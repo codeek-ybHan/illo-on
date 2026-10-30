@@ -3,6 +3,8 @@ package com.illoon.task;
 import com.illoon.common.exception.ApiException;
 import com.illoon.common.exception.ErrorCode;
 import com.illoon.project.ProjectService;
+import com.illoon.meeting.MeetingRepository;
+import com.illoon.sprint.SprintRepository;
 import com.illoon.project.domain.Project;
 import com.illoon.project.ProjectMemberRepository;
 import com.illoon.project.ProjectRepository;
@@ -32,6 +34,8 @@ public class TaskService {
     private final ProjectRepository projectRepository;
     private final ProjectMemberRepository projectMemberRepository;
     private final UserRepository userRepository;
+    private final MeetingRepository meetingRepository;
+    private final SprintRepository sprintRepository;
 
     // ---------- queries ----------
 
@@ -70,6 +74,7 @@ public class TaskService {
     public TaskResponse create(Long userId, TaskCreateRequest req) {
         projectService.requireMember(req.projectId(), userId);
         validateAssignee(req.projectId(), req.assigneeId());
+        validateReferences(req.projectId(), req.meetingId(), req.sprintId());
 
         Task task = taskRepository.save(Task.builder()
                 .projectId(req.projectId())
@@ -89,6 +94,7 @@ public class TaskService {
         Task task = findTask(taskId);
         projectService.requireMember(task.getProjectId(), userId);
         validateAssignee(task.getProjectId(), req.assigneeId());
+        validateReferences(task.getProjectId(), req.meetingId(), req.sprintId());
 
         LocalDate completedAt = req.status() == TaskStatus.DONE && req.completedAt() == null
                 ? LocalDate.now()
@@ -116,6 +122,15 @@ public class TaskService {
             projectService.requireMember(task.getProjectId(), userId);
         } else if (!java.util.Objects.equals(task.getAssigneeId(), userId)) {
             throw new ApiException(ErrorCode.TASK_NOT_FOUND);
+        }
+    }
+
+    private void validateReferences(Long projectId, Long meetingId, Long sprintId) {
+        if (meetingId != null && !meetingRepository.existsByIdAndProjectId(meetingId, projectId)) {
+            throw new ApiException(ErrorCode.INVALID_INPUT, "회의는 같은 프로젝트에 속해야 합니다.");
+        }
+        if (sprintId != null && !sprintRepository.existsByIdAndProjectId(sprintId, projectId)) {
+            throw new ApiException(ErrorCode.INVALID_INPUT, "Sprint는 같은 프로젝트에 속해야 합니다.");
         }
     }
 

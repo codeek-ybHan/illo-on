@@ -224,3 +224,17 @@ JWT Bearer 인증(stateless). 총 **31개 엔드포인트**.
 - **Backend** : Spring Boot 3.4 · Java 21 · Spring Security(JWT stateless, jjwt) · BCrypt · Spring Data JPA · Spring AI 1.0 (OpenAI Chat + Whisper) · springdoc-openapi
 - **DB** : H2 파일(dev, `MODE=MySQL`) · MySQL 8(prod)
 - **인프라** : Docker 멀티스테이지 · nginx 리버스 프록시 · docker compose
+
+## 회귀 검증
+
+[Backend regression tests](https://github.com/codeek-ybHan/illo-on/actions/workflows/ci.yml)는 Java 21로 외부 OpenAI 호출 없이 실행합니다.
+
+```sh
+cd backend
+bash mvnw --batch-mode test
+```
+
+- Task 생성·수정은 회의와 Sprint가 같은 프로젝트 소속인지 검사합니다.
+- 상대 날짜는 분석 실행일 대신 회의일(회의일 미지정 때만 현재일)을 기준으로 해석합니다. 명시된 과거 기한의 연도를 자동으로 바꾸지 않습니다.
+- 삭제 회귀 테스트는 기존 프로젝트 삭제 정책(Task·Sprint 삭제)과 비멤버 거부를 검사합니다. 회의·초대·분석 기록까지 포함한 전체 보존/삭제 정책과 실제 AI 폴백 provider 저장은 후속 개선 대상입니다.
+- JUnit 회귀 검사와 `backend/scripts/e2e.sh`의 HTTP 시나리오 검사는 별도입니다. E2E 성공은 실제 LLM 품질을 보장하지 않습니다.
