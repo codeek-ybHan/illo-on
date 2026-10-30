@@ -65,6 +65,11 @@ public class MockAiAnalyzer implements AiAnalyzer {
 
     @Override
     public Briefing analyze(String text, List<String> memberNames) {
+        return analyze(text, memberNames, LocalDate.now());
+    }
+
+    @Override
+    public Briefing analyze(String text, List<String> memberNames, LocalDate referenceDate) {
         List<String> sentences = new ArrayList<>();
         Matcher sm = SENTENCE.matcher(text == null ? "" : text);
         while (sm.find()) {
@@ -89,13 +94,13 @@ public class MockAiAnalyzer implements AiAnalyzer {
             boolean hasVerb = VERB_TAIL.matcher(s).find();
 
             if (assignee != null && hasVerb && actionPoints.size() < 15) {
-                actionPoints.add(ap(s, rawName, assignee));
+                actionPoints.add(ap(s, rawName, assignee, referenceDate));
                 consumed.add(i);
             } else if (DECISION.matcher(s).find() && decisions.size() < 12) {
                 decisions.add(cleanDecision(s));
                 consumed.add(i);
             } else if (hasVerb && ACTION_TAIL.matcher(s).find() && actionPoints.size() < 15) {
-                actionPoints.add(ap(s, rawName, assignee));
+                actionPoints.add(ap(s, rawName, assignee, referenceDate));
                 consumed.add(i);
             }
         }
@@ -140,8 +145,8 @@ public class MockAiAnalyzer implements AiAnalyzer {
         return s.length() > n ? s.substring(0, n) + "…" : s;
     }
 
-    private Briefing.ActionPoint ap(String s, String rawName, String assignee) {
-        return new Briefing.ActionPoint(summarizeTitle(s, rawName), assignee, extractDate(s), extractPriority(s));
+    private Briefing.ActionPoint ap(String s, String rawName, String assignee, LocalDate referenceDate) {
+        return new Briefing.ActionPoint(summarizeTitle(s, rawName), assignee, extractDate(s, referenceDate), extractPriority(s));
     }
 
     // ---------- Action Point 업무명 ----------
@@ -199,8 +204,7 @@ public class MockAiAnalyzer implements AiAnalyzer {
         return null;
     }
 
-    private String extractDate(String s) {
-        LocalDate today = LocalDate.now();
+    private String extractDate(String s, LocalDate today) {
         if (s.contains("내일")) return today.plusDays(1).toString();
         if (s.contains("모레")) return today.plusDays(2).toString();
         if (s.contains("다음 주") || s.contains("다음주") || s.contains("차주")) return today.plusWeeks(1).toString();
@@ -215,7 +219,7 @@ public class MockAiAnalyzer implements AiAnalyzer {
             try {
                 LocalDate d = LocalDate.of(today.getYear(),
                         Integer.parseInt(m.group(1)), Integer.parseInt(m.group(2)));
-                return (d.isBefore(today) ? d.plusYears(1) : d).toString();
+                return d.toString();
             } catch (Exception ignored) {
                 return null;
             }

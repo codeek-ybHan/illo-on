@@ -11,4 +11,6 @@ public interface MeetingRepository extends JpaRepository<Meeting, Long> {
     List<Meeting> findAllByProjectIdOrderByMeetingAtDescCreatedAtDesc(Long projectId);
 
     List<Meeting> findAllByProjectIdInOrderByMeetingAtDescCreatedAtDesc(Collection<Long> projectIds);
+    boolean existsByIdAndProjectId(Long id, Long projectId);
 }
+

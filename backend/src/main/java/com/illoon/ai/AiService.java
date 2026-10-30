@@ -67,7 +67,8 @@ public class AiService {
         List<String> memberNames = projectService.listMembers(meeting.getProjectId(), userId).stream()
                 .map(MemberResponse::name)
                 .toList();
-        Briefing briefing = analyzer.analyze(text, memberNames); // 느림 — 트랜잭션 밖
+        LocalDate referenceDate = meeting.getMeetingAt() == null ? LocalDate.now() : meeting.getMeetingAt().toLocalDate();
+        Briefing briefing = analyzer.analyze(text, memberNames, referenceDate); // 느림 — 트랜잭션 밖
 
         return store.save(
                 meetingId,
@@ -137,17 +138,15 @@ public class AiService {
 
     /**
      * LLM 이 "yyyy-MM-dd" 또는 "yyyy-MM-ddTHH:mm" 을 줄 수 있음. 날짜만이면 18:00(업무 마감)으로.
-     * 이미 지난 날짜(LLM 이 연도를 잘못 넣은 경우)는 다음 해로 보정.
+     * 과거 기한도 원문 의미대로 보존하며 연도를 임의로 바꾸지 않는다.
      */
-    private LocalDateTime parseDue(String s) {
+    static LocalDateTime parseDue(String s) {
         if (s == null || s.isBlank()) return null;
         String t = s.trim();
         try {
             LocalDateTime dt = (t.length() > 10)
-                    ? LocalDateTime.parse(t.length() == 16 ? t : t.substring(0, 16))
+                    ? LocalDateTime.parse(t)
                     : LocalDate.parse(t).atTime(18, 0);
-            LocalDateTime today = LocalDate.now().atStartOfDay();
-            while (dt.isBefore(today)) dt = dt.plusYears(1);
             return dt;
         } catch (Exception e) {
             return null;
